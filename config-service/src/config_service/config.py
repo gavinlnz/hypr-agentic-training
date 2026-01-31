@@ -1,11 +1,16 @@
 """Application configuration using pydantic-settings."""
 
-from pydantic import Field
+from pydantic import Field, ConfigDict
 from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
     """Application settings loaded from environment variables."""
+    
+    model_config = ConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8"
+    )
     
     # Database configuration
     database_url: str = Field(..., description="PostgreSQL connection URL")
@@ -17,10 +22,6 @@ class Settings(BaseSettings):
     host: str = Field("0.0.0.0", description="Host to bind to")
     port: int = Field(8000, description="Port to bind to")
     debug: bool = Field(False, description="Enable debug mode")
-    
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
 
 
 # Global settings instance
