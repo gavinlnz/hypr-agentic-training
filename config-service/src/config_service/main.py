@@ -5,7 +5,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from config_service.config import settings
 from config_service.database.connection import db_manager
-from config_service.routers import applications, configurations
+from config_service.routers import applications
 
 # Configure logging
 logging.basicConfig(level=getattr(logging, settings.log_level.upper()))
@@ -36,7 +36,8 @@ app = FastAPI(
 
 # Include routers with /api/v1 prefix
 app.include_router(applications.router, prefix="/api/v1", tags=["applications"])
-app.include_router(configurations.router, prefix="/api/v1", tags=["configurations"])
+# TODO: Add configurations router when implemented
+# app.include_router(configurations.router, prefix="/api/v1", tags=["configurations"])
 
 
 @app.get("/")

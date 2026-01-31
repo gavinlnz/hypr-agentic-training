@@ -29,10 +29,18 @@ async def create_application(application_data: ApplicationCreate):
 
 
 @router.get("/applications/{app_id}", response_model=ApplicationWithConfigs)
-async def get_application(app_id: ULID):
+async def get_application(app_id: str):
     """Get application by ID including related configuration IDs."""
     try:
-        application = await application_repository.get_by_id_with_configs(app_id)
+        ulid_id = ULID.from_str(app_id)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid application ID format"
+        )
+    
+    try:
+        application = await application_repository.get_by_id_with_configs(ulid_id)
         if not application:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -61,10 +69,18 @@ async def list_applications():
 
 
 @router.put("/applications/{app_id}", response_model=Application)
-async def update_application(app_id: ULID, application_data: ApplicationUpdate):
+async def update_application(app_id: str, application_data: ApplicationUpdate):
     """Update an existing application."""
     try:
-        application = await application_repository.update(app_id, application_data)
+        ulid_id = ULID.from_str(app_id)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid application ID format"
+        )
+    
+    try:
+        application = await application_repository.update(ulid_id, application_data)
         if not application:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,

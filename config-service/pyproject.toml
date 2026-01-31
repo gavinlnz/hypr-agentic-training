@@ -7,7 +7,7 @@ name = "config-service"
 version = "0.1.0"
 description = "Configuration API Service"
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.13,<3.14"
 dependencies = [
     "fastapi==0.116.1",
     "pydantic==2.11.7",
