@@ -24,25 +24,36 @@ A REST API service for managing application configurations built with FastAPI an
 1. **Setup environment:**
    ```bash
    make dev-setup
-   # Edit .env with your database configuration
+   # Edit .env with your database configuration (already configured for local development)
    ```
 
-2. **Install dependencies:**
+2. **Setup database:**
+   ```bash
+   # Create the database and user (run as PostgreSQL superuser)
+   psql -U postgres -f setup-db.sql
+   
+   # Or manually create database:
+   createdb -U postgres config_service
+   psql -U postgres -c "CREATE USER devuser WITH PASSWORD '1aRm1cipPF77ZbI81MVqRWKn';"
+   psql -U postgres -c "GRANT ALL PRIVILEGES ON DATABASE config_service TO devuser;"
+   ```
+
+3. **Install dependencies:**
    ```bash
    make install
    ```
 
-3. **Run migrations:**
+4. **Run migrations:**
    ```bash
    make migrate
    ```
 
-4. **Start the service:**
+5. **Start the service:**
    ```bash
    make run
    ```
 
-5. **Run tests:**
+6. **Run tests:**
    ```bash
    make test
    ```

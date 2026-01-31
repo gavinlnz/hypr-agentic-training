@@ -1,4 +1,4 @@
-.PHONY: install test run clean lint format migrate
+.PHONY: install test run clean lint format migrate setup-db
 
 # Install dependencies
 install:
@@ -23,10 +23,18 @@ clean:
 migrate:
 	uv run python -m src.config_service.database.migrations
 
+# Setup database (requires PostgreSQL superuser access)
+setup-db:
+	@echo "Setting up database..."
+	@echo "Please run the following command as PostgreSQL superuser:"
+	@echo "psql -U postgres -f setup-db.sql"
+
 # Development setup
 dev-setup: install
 	cp .env.example .env
 	@echo "Please edit .env with your database configuration"
+	@echo "Then run 'make setup-db' to create the database"
+	@echo "Finally run 'make migrate' to set up the schema"
 
 # Help
 help:
@@ -36,4 +44,5 @@ help:
 	@echo "  run        - Run the service with uvicorn"
 	@echo "  clean      - Clean build artifacts"
 	@echo "  migrate    - Run database migrations"
+	@echo "  setup-db   - Instructions for database setup"
 	@echo "  dev-setup  - Set up development environment"
