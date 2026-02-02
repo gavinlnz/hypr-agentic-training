@@ -6,6 +6,7 @@ import './components/layout/app-header';
 import './components/layout/app-navigation';
 import './components/applications/application-list';
 import './components/applications/application-form';
+import './components/applications/application-detail';
 
 // Initialize the application
 document.addEventListener('DOMContentLoaded', () => {
