@@ -24,7 +24,7 @@ describe('ApiClient', () => {
 
       const result = await apiClient.get('/test');
 
-      expect(mockFetch).toHaveBeenCalledWith('/api/v1/test', {
+      expect(mockFetch).toHaveBeenCalledWith('http://localhost:8000/api/v1/test', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -45,7 +45,7 @@ describe('ApiClient', () => {
 
       const result = await apiClient.post('/test', requestData);
 
-      expect(mockFetch).toHaveBeenCalledWith('/api/v1/test', {
+      expect(mockFetch).toHaveBeenCalledWith('http://localhost:8000/api/v1/test', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -63,10 +63,10 @@ describe('ApiClient', () => {
         json: () => Promise.resolve({ detail: 'Item not found' }),
       });
 
-      await expect(apiClient.get('/test/999')).rejects.toThrow(ApiError);
-      
       try {
         await apiClient.get('/test/999');
+        // Should not reach here
+        expect(true).toBe(false);
       } catch (error) {
         expect(error).toBeInstanceOf(ApiError);
         expect((error as ApiError).status).toBe(404);
@@ -77,10 +77,10 @@ describe('ApiClient', () => {
     it('should handle network error', async () => {
       mockFetch.mockRejectedValueOnce(new Error('Network error'));
 
-      await expect(apiClient.get('/test')).rejects.toThrow(ApiError);
-      
       try {
         await apiClient.get('/test');
+        // Should not reach here
+        expect(true).toBe(false);
       } catch (error) {
         expect(error).toBeInstanceOf(ApiError);
         expect((error as ApiError).status).toBe(0);
@@ -137,7 +137,22 @@ describe('ApiClient', () => {
       spy.mockResolvedValueOnce({});
 
       await apiClient.delete('/test/1');
-      expect(spy).toHaveBeenCalledWith('/test/1', { method: 'DELETE' });
+      expect(spy).toHaveBeenCalledWith('/test/1', { 
+        method: 'DELETE',
+        body: undefined,
+      });
+    });
+
+    it('should call request with correct method for DELETE with data', async () => {
+      const spy = vi.spyOn(apiClient, 'request');
+      spy.mockResolvedValueOnce({});
+
+      const data = { ids: ['1', '2', '3'] };
+      await apiClient.delete('/test', data);
+      expect(spy).toHaveBeenCalledWith('/test', {
+        method: 'DELETE',
+        body: JSON.stringify(data),
+      });
     });
   });
 });
