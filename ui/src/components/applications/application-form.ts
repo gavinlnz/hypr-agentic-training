@@ -39,7 +39,7 @@ export class ApplicationForm extends BaseComponent {
         <div class="form-header">
           <h1 class="page-title">${title}</h1>
           <div class="breadcrumb">
-            <a href="#/" class="breadcrumb-link">Applications</a>
+          <a href="#/applications" class="breadcrumb-link">Applications</a>
             <span class="breadcrumb-separator">›</span>
             <span class="breadcrumb-current">${title}</span>
           </div>
@@ -326,7 +326,7 @@ export class ApplicationForm extends BaseComponent {
       }
 
       // Navigate back to applications list
-      window.location.hash = '/';
+      window.location.hash = '#/applications';
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to save application';
       this.formState.errors.submit = message;
@@ -420,7 +420,7 @@ export class ApplicationForm extends BaseComponent {
         ${errors.submit ? `<error-message message="${errors.submit}" type="error"></error-message>` : ''}
 
         <div class="form-actions">
-          <a href="#/" class="btn btn-secondary">Cancel</a>
+          <a href="#/applications" class="btn btn-secondary">Cancel</a>
           ${this.mode === 'edit' ? `
             <button 
               type="button" 
@@ -479,7 +479,6 @@ export class ApplicationForm extends BaseComponent {
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to delete application';
       this.formState.errors.submit = message;
-    } finally {
       this.formState.isSubmitting = false;
       this.render();
     }

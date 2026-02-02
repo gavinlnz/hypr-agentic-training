@@ -386,12 +386,9 @@ export class ApplicationDetail extends BaseComponent {
 
     if (!confirmed) return;
 
-    const result = await this.handleAsync(
-      () => applicationService.deleteApplication(this.applicationId),
-      'Failed to delete application'
-    );
+    try {
+      await applicationService.deleteApplication(this.applicationId);
 
-    if (result !== undefined) {
       // Dispatch success event
       this.dispatchEvent(new CustomEvent('app-success', {
         bubbles: true,
@@ -400,6 +397,9 @@ export class ApplicationDetail extends BaseComponent {
 
       // Navigate back to applications list
       window.location.hash = '#/applications';
+    } catch (error) {
+      // Handle error through the base component's error handling
+      this.setState({ error: error instanceof Error ? error.message : 'Failed to delete application' });
     }
   }
 }

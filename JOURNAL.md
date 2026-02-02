@@ -652,3 +652,234 @@ These learnings represent significant debugging experience that would be valuabl
   - Error recovery patterns validated
 
   This comprehensive test suite ensures the delete functionality is robust, reliable, and maintainable. The tests serve as both quality assurance and living documentation of the expected behavior across all application layers.
+### Journal Entry 15: Fix Navigation After Delete Operations
+
+- **Prompt**: Fix navigation issue where users remain on deleted application detail page after successful deletion
+- **Tool**: Kiro AI Assistant
+- **Mode**: Debug
+- **Context**: Delete operations succeed but don't redirect to application list
+- **Model**: Auto
+- **Input**: User report of staying on detail page after deletion
+- **Output**: Fixed navigation logic in both detail and edit views
+- **Cost**: Low - targeted bug fix
+- **Reflections**: **Critical Learning - HTTP Status Code Handling and Navigation Logic**:
+
+  **Problem Identified**:
+  ```typescript
+  // Problematic logic in application-detail.ts
+  const result = await this.handleAsync(
+    () => applicationService.deleteApplication(this.applicationId),
+    'Failed to delete application'
+  );
+
+  if (result !== undefined) {  // ❌ This never executes!
+    window.location.hash = '#/applications';
+  }
+  ```
+
+  **Root Cause Analysis**:
+  - DELETE operations return HTTP 204 No Content
+  - In JavaScript, this translates to `undefined`
+  - The condition `result !== undefined` never evaluates to true
+  - Navigation code never executes despite successful deletion
+
+  **Solution Implemented**:
+  ```typescript
+  // Fixed navigation logic
+  async handleDelete(): Promise<void> {
+    if (!this.application) return;
+
+    const confirmed = confirm(
+      `Are you sure you want to delete the application "${this.application.name}"?\n\nThis action cannot be undone.`
+    );
+
+    if (!confirmed) return;
+
+    try {
+      await applicationService.deleteApplication(this.applicationId);
+
+      // Dispatch success event
+      this.dispatchEvent(new CustomEvent('app-success', {
+        bubbles: true,
+        detail: { message: `Application "${this.application.name}" deleted successfully` }
+      }));
+
+      // Navigate back to applications list
+      window.location.hash = '#/applications';
+    } catch (error) {
+      // Handle error through the base component's error handling
+      this.setState({ error: error instanceof Error ? error.message : 'Failed to delete application' });
+    }
+  }
+  ```
+
+  **Key Technical Insights**:
+
+  1. **HTTP Status Code Semantics**:
+     - 204 No Content means "success with no response body"
+     - JavaScript fetch() returns undefined for empty responses
+     - Success should be determined by lack of exception, not return value
+
+  2. **Error Handling Patterns**:
+     ```typescript
+     // Wrong: Check return value for success
+     if (result !== undefined) { /* navigate */ }
+     
+     // Correct: Use try/catch for success/failure
+     try {
+       await operation();
+       // Success - navigate
+     } catch (error) {
+       // Failure - show error
+     }
+     ```
+
+  3. **Navigation Consistency**:
+     - Both detail view and edit view needed the same fix
+     - Consistent user experience across all delete operations
+     - Proper cleanup of loading states in error scenarios
+
+  4. **Event-Driven Architecture**:
+     - Success notifications still dispatched via CustomEvents
+     - Error handling integrated with existing component patterns
+     - Separation of concerns maintained
+
+  **User Experience Improvements**:
+  - ✅ **Immediate Feedback**: Success notification appears
+  - ✅ **Automatic Navigation**: Redirects to application list
+  - ✅ **Consistent Behavior**: Same experience from detail and edit views
+  - ✅ **Error Recovery**: Proper error states if deletion fails
+
+  **Testing Implications**:
+  - Existing tests still pass (they test the service layer correctly)
+  - Navigation logic now works as expected in real usage
+  - Error handling maintains existing patterns
+
+  **Broader Application**:
+  This pattern applies to any HTTP operations that return 204 No Content:
+  - DELETE operations
+  - Some PUT operations (updates without response body)
+  - PATCH operations (partial updates)
+
+  **Code Quality Insights**:
+  - **Avoid Return Value Assumptions**: Don't assume successful operations return data
+  - **Use Exception-Based Flow Control**: try/catch is clearer than return value checking
+  - **Test Real User Flows**: Unit tests passed but real usage revealed the issue
+  - **Consistent Error Patterns**: Maintain existing error handling approaches
+
+  This fix demonstrates the importance of understanding HTTP semantics and testing complete user workflows, not just individual component methods. The navigation issue was subtle but significantly impacted user experience.
+### Journal Entry 16: Fix Navigation Link Issues and Port Configuration
+
+- **Prompt**: Fix navigation links appearing disabled and flashing white on hover, plus port configuration issues
+- **Tool**: Kiro AI Assistant
+- **Mode**: Debug
+- **Context**: Navigation links not working properly and inconsistent port usage
+- **Model**: Auto
+- **Input**: User reports of disabled navigation links and white flashing on hover
+- **Output**: Fixed navigation event listeners, CSS hover states, and port configuration
+- **Cost**: Moderate - debugging and CSS fixes
+- **Reflections**: **Critical Learning - Web Components Event Handling and CSS Timing Issues**:
+
+  **Problem 1 - Navigation Event Listeners Not Working**:
+  ```typescript
+  // Wrong: Using single $ method for multiple elements
+  this.$('.nav-menu-link').forEach(link => { ... })
+  
+  // Correct: Using double $$ method for NodeList
+  this.$$('.nav-menu-link').forEach(link => { ... })
+  ```
+
+  **Root Cause Analysis**:
+  - BaseComponent has two methods: `$()` for single elements, `$$()` for multiple elements
+  - Navigation components were incorrectly using `$()` which returns `Element | null`
+  - Calling `forEach` on a single element fails, preventing event listeners from being attached
+  - This made navigation links appear "disabled" since click handlers weren't working
+
+  **Problem 2 - CSS Hover State Flashing**:
+  ```css
+  /* Problematic: Transition on default state causes flash */
+  .nav-link {
+    transition: all var(--transition-fast);
+  }
+  
+  /* Fixed: No transition on default, only on hover */
+  .nav-link {
+    transition: none;
+  }
+  .nav-link:hover {
+    transition: all 0.15s ease-in-out !important;
+  }
+  ```
+
+  **Root Cause Analysis**:
+  - CSS custom properties not fully resolved on first render in Shadow DOM
+  - Global CSS `a:hover` styles conflicting with component styles
+  - Transitions starting before initial state properly established
+  - First hover interaction had timing issues with CSS variable resolution
+
+  **Problem 3 - Port Configuration Inconsistency**:
+  - Port 3000 occupied by Open WebUI (Docker)
+  - Vite automatically falling back to port 3001
+  - CORS configuration already supported both ports
+  - Updated Vite config to explicitly use port 3001 for consistency
+
+  **Solutions Implemented**:
+
+  1. **Fixed Event Listener Attachment**:
+     ```typescript
+     // Updated both app-navigation.ts and app-header.ts
+     this.$$('.nav-menu-link').forEach(link => {
+       link.addEventListener('click', (e) => {
+         e.preventDefault();
+         const href = (e.currentTarget as HTMLAnchorElement).getAttribute('href');
+         if (href) {
+           window.location.hash = href.slice(1);
+         }
+       });
+     });
+     ```
+
+  2. **Eliminated CSS Timing Issues**:
+     ```css
+     /* Hard-coded values to avoid CSS variable resolution timing */
+     .nav-link {
+       color: #4b5563;
+       background-color: transparent;
+       transition: none;
+     }
+     .nav-link:hover {
+       color: #2563eb !important;
+       background-color: #dbeafe !important;
+       transition: all 0.15s ease-in-out !important;
+     }
+     ```
+
+  3. **Consistent Port Configuration**:
+     ```typescript
+     // vite.config.ts
+     server: {
+       port: 3001, // Changed from 3000
+       proxy: { ... }
+     }
+     ```
+
+  **Key Technical Insights**:
+
+  - **Web Components Method Naming**: Clear distinction between `$()` and `$$()` methods is crucial
+  - **Shadow DOM CSS Timing**: CSS custom properties can have resolution timing issues in Shadow DOM
+  - **Event Target vs CurrentTarget**: Use `currentTarget` for more reliable event handling
+  - **CSS Transition Timing**: Avoid transitions on default states that might not be fully initialized
+  - **Port Management**: Explicit port configuration prevents confusion with automatic fallbacks
+
+  **User Experience Improvements**:
+  - ✅ **Navigation Links Work**: Both "New Application" and "Applications" links are clickable
+  - ✅ **No White Flashing**: Smooth hover transitions without visual glitches
+  - ✅ **Consistent Port**: Always runs on http://localhost:3001/
+  - ✅ **Proper Active States**: Navigation highlights current page correctly
+
+  **Development Environment**:
+  - **Port 3000**: Open WebUI (Docker)
+  - **Port 3001**: Config Service Admin UI (Vite)
+  - **Port 8000**: Config Service API (FastAPI)
+
+  This debugging session revealed important patterns for Web Components development, particularly around event handling in Shadow DOM and CSS timing issues with custom properties. The hard-coded CSS approach, while less maintainable, provides more reliable initial rendering behavior.

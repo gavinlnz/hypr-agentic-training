@@ -71,19 +71,21 @@ export class AppNavigation extends BaseComponent {
       .nav-menu-link {
         display: flex;
         align-items: center;
-        gap: var(--spacing-sm);
-        padding: var(--spacing-sm);
-        color: var(--color-text-secondary);
+        gap: 8px;
+        padding: 8px;
+        color: #4b5563;
         text-decoration: none;
-        border-radius: var(--border-radius-md);
-        transition: all var(--transition-fast);
-        font-weight: var(--font-weight-medium);
+        border-radius: 6px;
+        font-weight: 500;
+        background-color: transparent;
+        transition: none;
       }
 
       .nav-menu-link:hover {
-        color: var(--color-primary);
-        background-color: var(--color-primary-light);
-        text-decoration: none;
+        color: #2563eb !important;
+        background-color: #dbeafe !important;
+        text-decoration: none !important;
+        transition: all 0.15s ease-in-out !important;
       }
 
       .nav-menu-link.active {
@@ -147,7 +149,7 @@ export class AppNavigation extends BaseComponent {
     this.$$('.nav-menu-link').forEach(link => {
       link.addEventListener('click', (e) => {
         e.preventDefault();
-        const href = (e.target as HTMLAnchorElement).getAttribute('href');
+        const href = (e.currentTarget as HTMLAnchorElement).getAttribute('href');
         if (href) {
           window.location.hash = href.slice(1);
         }
