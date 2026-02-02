@@ -95,14 +95,15 @@ export class ApplicationForm extends BaseComponent {
       }
 
       .form-content {
-        background-color: var(--color-bg-primary);
-        border-radius: var(--border-radius-lg);
-        box-shadow: var(--shadow-sm);
-        padding: var(--spacing-xl);
+        background-color: #ffffff;
+        border: 2px solid #e5e7eb;
+        border-radius: 12px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        padding: 32px;
       }
 
       .form-group {
-        margin-bottom: var(--spacing-lg);
+        margin-bottom: 24px;
       }
 
       .form-label {
@@ -119,29 +120,47 @@ export class ApplicationForm extends BaseComponent {
 
       .form-input,
       .form-textarea {
+        display: block;
         width: 100%;
-        padding: var(--spacing-sm) var(--spacing-md);
-        border: var(--border-width) solid var(--color-border);
-        border-radius: var(--border-radius-md);
-        font-size: var(--font-size-base);
-        transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+        padding: 12px 16px;
+        margin: 0;
+        border: 2px solid #d1d5db;
+        border-radius: 8px;
+        font-size: 16px;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background-color: #ffffff;
+        color: #111827;
+        line-height: 1.5;
+        box-sizing: border-box;
+        transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        appearance: none;
       }
 
       .form-input:focus,
       .form-textarea:focus {
         outline: none;
-        border-color: var(--color-primary);
-        box-shadow: 0 0 0 3px var(--color-primary-light);
+        border-color: #2563eb;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        background-color: #ffffff;
+      }
+
+      .form-input::placeholder,
+      .form-textarea::placeholder {
+        color: #9ca3af;
+        opacity: 1;
       }
 
       .form-input.error,
       .form-textarea.error {
-        border-color: var(--color-error);
+        border-color: #dc2626;
       }
 
       .form-textarea {
         resize: vertical;
         min-height: 100px;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       }
 
       .form-help {
@@ -203,6 +222,21 @@ export class ApplicationForm extends BaseComponent {
         text-decoration: none;
       }
 
+      .btn-danger {
+        background-color: var(--color-danger);
+        color: var(--color-white);
+        border: none;
+      }
+
+      .btn-danger:hover:not(:disabled) {
+        background-color: var(--color-danger-hover);
+      }
+
+      .btn-icon {
+        font-size: var(--font-size-base);
+        margin-right: var(--spacing-xs);
+      }
+
       .loading-state {
         text-align: center;
         padding: var(--spacing-2xl);
@@ -237,22 +271,22 @@ export class ApplicationForm extends BaseComponent {
 
     this.shadow.innerHTML = '';
     this.shadow.appendChild(template.content.cloneNode(true));
+    
+    // Set up event listeners after DOM is updated
+    this.setupFormEventListeners();
   }
 
   protected setupEventListeners(): void {
+    // This is called by BaseComponent but we handle form events separately
+  }
+
+  private setupFormEventListeners(): void {
     const form = this.$('.app-form') as HTMLFormElement;
     if (form) {
       form.addEventListener('submit', (e) => {
         e.preventDefault();
         this.handleSubmit();
       });
-    }
-
-    // Real-time validation
-    const nameInput = this.$('.form-input[name="name"]') as HTMLInputElement;
-    if (nameInput) {
-      nameInput.addEventListener('blur', () => this.validateField('name'));
-      nameInput.addEventListener('input', () => this.clearFieldError('name'));
     }
   }
 
@@ -328,25 +362,6 @@ export class ApplicationForm extends BaseComponent {
     return Object.keys(this.formState.errors).length === 0;
   }
 
-  private validateField(fieldName: string): void {
-    const data = this.getFormData();
-    
-    if (fieldName === 'name') {
-      if (!data.name) {
-        this.formState.errors.name = 'Application name is required';
-      } else if (data.name.length > 256) {
-        this.formState.errors.name = 'Application name must be 256 characters or less';
-      }
-    }
-
-    this.render();
-  }
-
-  private clearFieldError(fieldName: string): void {
-    delete this.formState.errors[fieldName];
-    this.render();
-  }
-
   private renderLoading(): string {
     return `
       <div class="loading-state">
@@ -406,6 +421,17 @@ export class ApplicationForm extends BaseComponent {
 
         <div class="form-actions">
           <a href="#/" class="btn btn-secondary">Cancel</a>
+          ${this.mode === 'edit' ? `
+            <button 
+              type="button" 
+              class="btn btn-danger"
+              onclick="this.getRootNode().host.handleDelete()"
+              ${this.formState.isSubmitting ? 'disabled' : ''}
+            >
+              <span class="btn-icon">🗑️</span>
+              Delete Application
+            </button>
+          ` : ''}
           <button 
             type="submit" 
             class="btn btn-primary"
@@ -423,6 +449,38 @@ export class ApplicationForm extends BaseComponent {
     if (this.mode === 'edit' && this.applicationId && !this.application) {
       this.loadApplication();
     } else {
+      this.render();
+    }
+  }
+
+  async handleDelete(): Promise<void> {
+    if (!this.application || !this.applicationId) return;
+
+    const confirmed = confirm(
+      `Are you sure you want to delete the application "${this.application.name}"?\n\nThis action cannot be undone.`
+    );
+
+    if (!confirmed) return;
+
+    this.formState.isSubmitting = true;
+    this.render();
+
+    try {
+      await applicationService.deleteApplication(this.applicationId);
+
+      // Dispatch success event
+      this.dispatchEvent(new CustomEvent('app-success', {
+        bubbles: true,
+        detail: { message: `Application "${this.application.name}" deleted successfully` }
+      }));
+
+      // Navigate back to applications list
+      window.location.hash = '#/applications';
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to delete application';
+      this.formState.errors.submit = message;
+    } finally {
+      this.formState.isSubmitting = false;
       this.render();
     }
   }

@@ -38,10 +38,14 @@ export class ApplicationDetail extends BaseComponent {
               <span class="breadcrumb-current">${this.application?.name || 'Loading...'}</span>
             </div>
             <div class="header-actions">
-              <a href="#/applications/${this.applicationId}/edit" class="btn btn-primary">
+              <a href="#/applications/${this.applicationId}/edit" class="btn btn-secondary">
                 <span class="btn-icon">✏️</span>
                 Edit Application
               </a>
+              <button class="btn btn-danger" onclick="this.getRootNode().host.handleDelete()">
+                <span class="btn-icon">🗑️</span>
+                Delete Application
+              </button>
             </div>
           </div>
         </div>
@@ -121,6 +125,26 @@ export class ApplicationDetail extends BaseComponent {
       .btn-primary:hover {
         background-color: var(--color-primary-hover);
         text-decoration: none;
+      }
+
+      .btn-secondary {
+        background-color: var(--color-secondary);
+        color: var(--color-white);
+      }
+
+      .btn-secondary:hover {
+        background-color: var(--color-secondary-hover);
+        text-decoration: none;
+      }
+
+      .btn-danger {
+        background-color: var(--color-danger);
+        color: var(--color-white);
+        border: none;
+      }
+
+      .btn-danger:hover {
+        background-color: var(--color-danger-hover);
       }
 
       .btn-icon {
@@ -351,6 +375,32 @@ export class ApplicationDetail extends BaseComponent {
         <p>Configuration management will be available in a future update.</p>
       </div>
     `;
+  }
+
+  async handleDelete(): Promise<void> {
+    if (!this.application) return;
+
+    const confirmed = confirm(
+      `Are you sure you want to delete the application "${this.application.name}"?\n\nThis action cannot be undone.`
+    );
+
+    if (!confirmed) return;
+
+    const result = await this.handleAsync(
+      () => applicationService.deleteApplication(this.applicationId),
+      'Failed to delete application'
+    );
+
+    if (result !== undefined) {
+      // Dispatch success event
+      this.dispatchEvent(new CustomEvent('app-success', {
+        bubbles: true,
+        detail: { message: `Application "${this.application.name}" deleted successfully` }
+      }));
+
+      // Navigate back to applications list
+      window.location.hash = '#/applications';
+    }
   }
 }
 

@@ -23,6 +23,10 @@
   --color-error-border: #fecaca;
   --color-error-text: #991b1b;
   
+  --color-danger: #dc2626;
+  --color-danger-hover: #b91c1c;
+  --color-danger-light: #fef2f2;
+  
   --color-info: #2563eb;
   --color-info-bg: #eff6ff;
   --color-info-border: #bfdbfe;

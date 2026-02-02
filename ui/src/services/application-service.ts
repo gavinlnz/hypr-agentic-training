@@ -26,6 +26,10 @@ export class ApplicationService {
   async deleteApplication(id: string): Promise<void> {
     return apiClient.delete<void>(`/applications/${id}`);
   }
+
+  async deleteApplications(ids: string[]): Promise<void> {
+    return apiClient.delete<void>('/applications', { ids });
+  }
 }
 
 // Global service instance

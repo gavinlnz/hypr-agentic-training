@@ -12,7 +12,7 @@ export class ApiError extends Error {
 }
 
 export class ApiClient {
-  private baseUrl = '/api/v1';
+  private baseUrl = 'http://localhost:8000/api/v1';
 
   async request<T>(
     endpoint: string,
@@ -83,8 +83,11 @@ export class ApiClient {
     });
   }
 
-  async delete<T>(endpoint: string): Promise<T> {
-    return this.request<T>(endpoint, { method: 'DELETE' });
+  async delete<T>(endpoint: string, data?: any): Promise<T> {
+    return this.request<T>(endpoint, { 
+      method: 'DELETE',
+      body: data ? JSON.stringify(data) : undefined,
+    });
   }
 }
 

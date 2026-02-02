@@ -5,6 +5,8 @@ import type { Application } from '@/types/api';
 export class ApplicationList extends BaseComponent {
   private applications: Application[] = [];
   private searchTerm = '';
+  private selectedIds: Set<string> = new Set();
+  private isDeleting = false;
 
   connectedCallback(): void {
     super.connectedCallback();
@@ -38,6 +40,16 @@ export class ApplicationList extends BaseComponent {
                 aria-label="Search applications"
               >
             </div>
+            ${this.selectedIds.size > 0 ? `
+              <button 
+                class="btn btn-danger bulk-delete-btn"
+                onclick="this.getRootNode().host.handleBulkDelete()"
+                ${this.isDeleting ? 'disabled' : ''}
+              >
+                ${this.isDeleting ? '<loading-spinner size="small"></loading-spinner>' : '🗑️'}
+                Delete Selected (${this.selectedIds.size})
+              </button>
+            ` : ''}
           </div>
         </div>
 
@@ -115,6 +127,30 @@ export class ApplicationList extends BaseComponent {
         max-width: 400px;
       }
 
+      .bulk-delete-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--spacing-sm);
+        padding: var(--spacing-sm) var(--spacing-md);
+        border: var(--border-width) solid transparent;
+        border-radius: var(--border-radius-md);
+        font-weight: var(--font-weight-medium);
+        cursor: pointer;
+        transition: all var(--transition-fast);
+        font-size: var(--font-size-sm);
+        background-color: var(--color-danger);
+        color: var(--color-white);
+      }
+
+      .bulk-delete-btn:hover:not(:disabled) {
+        background-color: var(--color-danger-hover);
+      }
+
+      .bulk-delete-btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+
       .search-input {
         width: 100%;
         padding: var(--spacing-sm) var(--spacing-md);
@@ -153,6 +189,23 @@ export class ApplicationList extends BaseComponent {
 
       .applications-table tbody tr:hover {
         background-color: var(--color-bg-secondary);
+      }
+
+      .applications-table tbody tr.selected {
+        background-color: var(--color-primary-light);
+      }
+
+      .applications-table tbody tr.selected:hover {
+        background-color: var(--color-primary-light);
+      }
+
+      .select-column {
+        width: 40px;
+        text-align: center;
+      }
+
+      .select-checkbox {
+        cursor: pointer;
       }
 
       .app-name {
@@ -324,10 +377,23 @@ export class ApplicationList extends BaseComponent {
       return this.renderEmptyState();
     }
 
+    const allSelected = applications.length > 0 && applications.every(app => this.selectedIds.has(app.id));
+    const someSelected = applications.some(app => this.selectedIds.has(app.id));
+
     return `
       <table class="applications-table">
         <thead>
           <tr>
+            <th class="select-column">
+              <input 
+                type="checkbox" 
+                class="select-checkbox select-all-checkbox"
+                ${allSelected ? 'checked' : ''}
+                ${someSelected && !allSelected ? 'indeterminate' : ''}
+                onchange="this.getRootNode().host.handleSelectAll(this.checked)"
+                aria-label="Select all applications"
+              >
+            </th>
             <th>Name</th>
             <th>Comments</th>
             <th>Created</th>
@@ -336,7 +402,16 @@ export class ApplicationList extends BaseComponent {
         </thead>
         <tbody>
           ${applications.map(app => `
-            <tr>
+            <tr class="${this.selectedIds.has(app.id) ? 'selected' : ''}">
+              <td class="select-column">
+                <input 
+                  type="checkbox" 
+                  class="select-checkbox"
+                  ${this.selectedIds.has(app.id) ? 'checked' : ''}
+                  onchange="this.getRootNode().host.handleSelectRow('${app.id}', this.checked)"
+                  aria-label="Select ${app.name}"
+                >
+              </td>
               <td>
                 <div class="app-name">${app.name}</div>
               </td>
@@ -377,6 +452,67 @@ export class ApplicationList extends BaseComponent {
         ${!this.searchTerm ? '<a href="#/applications/new" class="btn btn-primary">Create Application</a>' : ''}
       </div>
     `;
+  }
+
+  handleSelectRow(appId: string, checked: boolean): void {
+    if (checked) {
+      this.selectedIds.add(appId);
+    } else {
+      this.selectedIds.delete(appId);
+    }
+    this.render();
+  }
+
+  handleSelectAll(checked: boolean): void {
+    const filteredApplications = this.filterApplications();
+    
+    if (checked) {
+      filteredApplications.forEach(app => this.selectedIds.add(app.id));
+    } else {
+      filteredApplications.forEach(app => this.selectedIds.delete(app.id));
+    }
+    this.render();
+  }
+
+  async handleBulkDelete(): Promise<void> {
+    if (this.selectedIds.size === 0) return;
+
+    const selectedApps = this.applications.filter(app => this.selectedIds.has(app.id));
+    const appNames = selectedApps.map(app => app.name).join(', ');
+    
+    const confirmed = confirm(
+      `Are you sure you want to delete ${this.selectedIds.size} application(s)?\n\n${appNames}\n\nThis action cannot be undone.`
+    );
+
+    if (!confirmed) return;
+
+    this.isDeleting = true;
+    this.render();
+
+    try {
+      await applicationService.deleteApplications(Array.from(this.selectedIds));
+
+      // Dispatch success event
+      this.dispatchEvent(new CustomEvent('app-success', {
+        bubbles: true,
+        detail: { message: `${this.selectedIds.size} application(s) deleted successfully` }
+      }));
+
+      // Clear selection and reload
+      this.selectedIds.clear();
+      await this.loadApplications();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to delete applications';
+      
+      // Dispatch error event
+      this.dispatchEvent(new CustomEvent('app-error', {
+        bubbles: true,
+        detail: { message }
+      }));
+    } finally {
+      this.isDeleting = false;
+      this.render();
+    }
   }
 }
 
