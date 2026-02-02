@@ -168,3 +168,224 @@ The plan provides excellent foundation for implementation with clear phases and 
 - **Error Handling**: Comprehensive error states and user feedback
 
 **Ready for Testing**: The UI is functional and ready for unit/e2e testing with the configured Vitest and Playwright setup.
+
+## Part 3: Integration, Testing, and Debugging
+
+### Journal Entry 7: Environment Setup and Database Configuration
+
+- **Prompt**: Set up development environment and database configuration
+- **Tool**: Kiro AI Assistant + Manual setup
+- **Mode**: Act
+- **Context**: Existing codebase
+- **Model**: Auto
+- **Input**: Project requirements and local environment
+- **Output**: Database setup, environment configuration, development scripts
+- **Cost**: Moderate - environment configuration
+- **Reflections**: Successfully configured PostgreSQL database and development environment:
+  - **Database**: PostgreSQL 14.15 on localhost:5432 with user 'devuser'
+  - **Tools**: Installed Python 3.13, uv, Node.js, pnpm via Homebrew
+  - **Automation**: Created setup-dev.sh script for reproducible environment setup
+  - **Security**: Proper .env file handling with example template
+
+### Journal Entry 8: API Startup Issues and FastAPI Path Parameter Debugging
+
+- **Prompt**: Debug API startup assertion errors
+- **Tool**: Kiro AI Assistant
+- **Mode**: Debug
+- **Context**: FastAPI application failing to start
+- **Model**: Auto
+- **Input**: Error logs showing FastAPI assertion failures
+- **Output**: Fixed path parameter types and router imports
+- **Cost**: Moderate - debugging session
+- **Reflections**: **Critical Learning - FastAPI Path Parameter Types**:
+  
+  **Problem**: FastAPI assertion error when using ULID types in path parameters
+  ```python
+  # This fails with assertion error:
+  @router.get("/applications/{application_id}")
+  async def get_application(application_id: ULID) -> ApplicationComplete:
+  ```
+  
+  **Root Cause**: FastAPI cannot automatically convert path parameters to complex types like ULID
+  
+  **Solution**: Use string type in path parameter, validate inside handler
+  ```python
+  # This works:
+  @router.get("/applications/{application_id}")
+  async def get_application(application_id: str) -> ApplicationComplete:
+      # Validate ULID inside the function
+      try:
+          ulid_obj = ULID.from_str(application_id)
+      except ValueError:
+          raise HTTPException(status_code=400, detail="Invalid ULID format")
+  ```
+  
+  **Key Insight**: FastAPI path parameters should use primitive types (str, int, float) with validation inside handlers for complex types.
+
+### Journal Entry 9: UI Integration and CORS Configuration
+
+- **Prompt**: Debug UI form submission and API connectivity issues
+- **Tool**: Kiro AI Assistant
+- **Mode**: Debug
+- **Context**: Frontend unable to communicate with backend API
+- **Model**: Auto
+- **Input**: Network errors and form submission failures
+- **Output**: Fixed CORS, API client configuration, and form handling
+- **Cost**: High - complex integration debugging
+- **Reflections**: **Critical Learning - Full-Stack Integration Issues**:
+
+  **Problem 1 - CORS Configuration**:
+  ```python
+  # Missing CORS middleware caused browser to block requests
+  app.add_middleware(
+      CORSMiddleware,
+      allow_origins=["http://localhost:3000", "http://localhost:3001"],
+      allow_credentials=True,
+      allow_methods=["*"],
+      allow_headers=["*"],
+  )
+  ```
+  
+  **Problem 2 - API Client Base URL**:
+  ```typescript
+  // Relative URLs don't work in development
+  // Wrong: baseURL: '/api/v1'
+  // Correct:
+  baseURL: 'http://localhost:8000/api/v1'
+  ```
+  
+  **Problem 3 - ULID Serialization**:
+  - Pydantic ULID objects don't serialize to JSON properly
+  - Solution: Use string IDs with ULID validation
+  
+  **Problem 4 - Database Transaction Handling**:
+  ```python
+  # Needed execute_returning_query method for INSERT...RETURNING
+  async def execute_returning_query(self, command: str, params: tuple = None) -> list[Dict[str, Any]]:
+      # Execute command and return results with proper transaction handling
+  ```
+  
+  **Problem 5 - Form Re-rendering Issues**:
+  - Real-time validation caused input focus loss on every keystroke
+  - Solution: Remove problematic validation that triggered re-renders
+
+### Journal Entry 10: Comprehensive Test Suite Debugging
+
+- **Prompt**: Fix all failing tests in both backend and frontend
+- **Tool**: Kiro AI Assistant
+- **Mode**: Debug
+- **Context**: 26 failing backend tests, frontend test issues
+- **Model**: Auto
+- **Input**: Test failure logs and error messages
+- **Output**: All tests passing (40 backend, 9 frontend)
+- **Cost**: High - comprehensive test debugging
+- **Reflections**: **Critical Learning - Test Environment Configuration**:
+
+  **Problem 1 - ULID Library Compatibility**:
+  ```python
+  # Wrong: from ulid import ULID (different library)
+  # Correct: from pydantic_extra_types import ULID
+  ```
+  
+  **Problem 2 - Async Test Support**:
+  ```python
+  # Missing pytest-asyncio dependency
+  # Added to pyproject.toml: pytest-asyncio = "^0.24.0"
+  ```
+  
+  **Problem 3 - Test Isolation**:
+  ```python
+  # Configuration tests interfering with each other
+  # Solution: Proper environment variable cleanup in fixtures
+  @pytest.fixture(autouse=True)
+  def clean_env():
+      # Clean environment before each test
+  ```
+  
+  **Problem 4 - Database Connection Mocking**:
+  ```python
+  # Proper async mock setup for database operations
+  mock_pool = MagicMock()
+  mock_connection = MagicMock()
+  mock_pool.getconn.return_value = mock_connection
+  ```
+  
+  **Problem 5 - Path Object Handling**:
+  ```python
+  # Migration tests failing due to Path object comparison
+  # Solution: Convert Path to string for comparisons
+  str(migration_file.name)
+  ```
+
+### Journal Entry 11: Test Warning Resolution
+
+- **Prompt**: Fix remaining test warnings for clean test suite
+- **Tool**: Kiro AI Assistant
+- **Mode**: Debug
+- **Context**: 3 warnings in otherwise passing test suite
+- **Model**: Auto
+- **Input**: Test warning messages
+- **Output**: Zero warnings, clean test suite
+- **Cost**: Low - targeted warning fixes
+- **Reflections**: **Critical Learning - Modern Python Best Practices**:
+
+  **Problem 1 - Pydantic Deprecation Warning**:
+  ```python
+  # Deprecated syntax:
+  class Settings(BaseSettings):
+      class Config:
+          env_file = ".env"
+  
+  # Modern syntax:
+  class Settings(BaseSettings):
+      model_config = ConfigDict(
+          env_file=".env",
+          env_file_encoding="utf-8"
+      )
+  ```
+  
+  **Problem 2 - Async Mock Misuse**:
+  ```python
+  # Wrong: Using AsyncMock for synchronous methods
+  mock_db_manager.initialize = AsyncMock()  # initialize() is sync!
+  
+  # Correct: Use MagicMock for synchronous methods
+  mock_db_manager.initialize = MagicMock()
+  ```
+  
+  **Key Insight**: Always check if methods are actually async before using AsyncMock. Many database initialization methods are synchronous even in async applications.
+
+## Key Debugging Learnings Summary
+
+### 1. FastAPI Path Parameters
+- Use primitive types (str, int) in path parameters
+- Validate complex types inside route handlers
+- FastAPI cannot auto-convert to custom types like ULID
+
+### 2. Full-Stack Integration
+- CORS must be configured for cross-origin requests
+- API client needs full URLs in development (not relative paths)
+- ULID serialization requires string conversion for JSON compatibility
+
+### 3. Database Integration
+- Connection pooling requires proper transaction handling
+- INSERT...RETURNING needs dedicated query methods
+- Mock database connections carefully in tests
+
+### 4. Test Environment Setup
+- Library compatibility matters (ulid vs pydantic-extra-types)
+- Async tests need pytest-asyncio
+- Test isolation requires proper cleanup
+- Mock types must match actual method signatures (sync vs async)
+
+### 5. Modern Python Practices
+- Pydantic v2 uses model_config instead of inner Config class
+- AsyncMock only for actually async methods
+- ConfigDict for model configuration
+
+### 6. UI Form Handling
+- Real-time validation can cause focus issues
+- Event handling must not trigger unnecessary re-renders
+- Form state management requires careful consideration
+
+These learnings represent significant debugging experience that would be valuable for future full-stack development projects.
