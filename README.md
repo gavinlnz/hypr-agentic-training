@@ -149,7 +149,7 @@ See `JOURNAL.md` for the complete development process documentation.
 
 - **API Server**: http://localhost:8000
 - **API Documentation**: http://localhost:8000/docs
-- **Admin UI**: http://localhost:3000
+- **Admin UI**: http://localhost:3001 (or next available port)
 
 ## License
 

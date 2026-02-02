@@ -3,7 +3,7 @@
 import pytest
 from datetime import datetime
 from pydantic import ValidationError
-from pydantic_extra_types.ulid import ULID
+from ulid import ULID as ULIDGenerator
 from config_service.models.application import (
     ApplicationBase, ApplicationCreate, ApplicationUpdate, 
     Application, ApplicationWithConfigs
@@ -61,18 +61,18 @@ def test_application_update():
 
 def test_application_complete():
     """Test complete Application model."""
-    ulid = ULID()
+    ulid_str = str(ULIDGenerator())
     now = datetime.now()
     
     app = Application(
-        id=ulid,
+        id=ulid_str,
         name="complete-app",
         comments="Complete application",
         created_at=now,
         updated_at=now
     )
     
-    assert app.id == ulid
+    assert app.id == ulid_str
     assert app.name == "complete-app"
     assert app.comments == "Complete application"
     assert app.created_at == now
@@ -81,13 +81,13 @@ def test_application_complete():
 
 def test_application_with_configs():
     """Test ApplicationWithConfigs model."""
-    ulid = ULID()
-    config_ulid1 = ULID()
-    config_ulid2 = ULID()
+    ulid_str = str(ULIDGenerator())
+    config_ulid1 = str(ULIDGenerator())
+    config_ulid2 = str(ULIDGenerator())
     now = datetime.now()
     
     app = ApplicationWithConfigs(
-        id=ulid,
+        id=ulid_str,
         name="app-with-configs",
         comments="App with configurations",
         created_at=now,
@@ -95,7 +95,7 @@ def test_application_with_configs():
         configuration_ids=[config_ulid1, config_ulid2]
     )
     
-    assert app.id == ulid
+    assert app.id == ulid_str
     assert app.name == "app-with-configs"
     assert len(app.configuration_ids) == 2
     assert config_ulid1 in app.configuration_ids
@@ -104,11 +104,11 @@ def test_application_with_configs():
 
 def test_application_with_configs_empty_list():
     """Test ApplicationWithConfigs with empty configuration list."""
-    ulid = ULID()
+    ulid_str = str(ULIDGenerator())
     now = datetime.now()
     
     app = ApplicationWithConfigs(
-        id=ulid,
+        id=ulid_str,
         name="app-no-configs",
         comments="App without configurations",
         created_at=now,
@@ -120,11 +120,11 @@ def test_application_with_configs_empty_list():
 
 def test_application_json_serialization():
     """Test Application model JSON serialization."""
-    ulid = ULID()
+    ulid_str = str(ULIDGenerator())
     now = datetime.now()
     
     app = Application(
-        id=ulid,
+        id=ulid_str,
         name="json-app",
         comments="JSON test",
         created_at=now,
@@ -132,6 +132,6 @@ def test_application_json_serialization():
     )
     
     json_data = app.model_dump()
-    assert json_data["id"] == str(ulid)
+    assert json_data["id"] == ulid_str
     assert json_data["name"] == "json-app"
     assert json_data["comments"] == "JSON test"

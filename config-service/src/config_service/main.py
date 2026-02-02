@@ -3,6 +3,7 @@
 import logging
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from config_service.config import settings
 from config_service.database.connection import db_manager
 from config_service.routers import applications
@@ -32,6 +33,15 @@ app = FastAPI(
     description="A REST API service for managing application configurations",
     version="1.0.0",
     lifespan=lifespan
+)
+
+# Add CORS middleware for frontend communication
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000", "http://localhost:3001"],  # UI dev server ports
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # Include routers with /api/v1 prefix

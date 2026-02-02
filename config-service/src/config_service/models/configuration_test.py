@@ -3,7 +3,7 @@
 import pytest
 from datetime import datetime
 from pydantic import ValidationError
-from pydantic_extra_types.ulid import ULID
+from ulid import ULID as ULIDGenerator
 from config_service.models.configuration import (
     ConfigurationBase, ConfigurationCreate, ConfigurationUpdate, Configuration
 )
@@ -11,7 +11,7 @@ from config_service.models.configuration import (
 
 def test_configuration_base_valid():
     """Test ConfigurationBase with valid data."""
-    app_id = ULID()
+    app_id = str(ULIDGenerator())
     config = ConfigurationBase(
         application_id=app_id,
         name="test-config",
@@ -27,7 +27,7 @@ def test_configuration_base_valid():
 
 def test_configuration_base_name_validation():
     """Test ConfigurationBase name validation."""
-    app_id = ULID()
+    app_id = str(ULIDGenerator())
     
     # Test minimum length
     with pytest.raises(ValidationError):
@@ -41,7 +41,7 @@ def test_configuration_base_name_validation():
 
 def test_configuration_base_comments_validation():
     """Test ConfigurationBase comments validation."""
-    app_id = ULID()
+    app_id = str(ULIDGenerator())
     
     # Valid comments
     config = ConfigurationBase(application_id=app_id, name="test", comments="Valid comment")
@@ -59,14 +59,14 @@ def test_configuration_base_comments_validation():
 
 def test_configuration_base_config_default():
     """Test ConfigurationBase config field defaults to empty dict."""
-    app_id = ULID()
+    app_id = str(ULIDGenerator())
     config = ConfigurationBase(application_id=app_id, name="test")
     assert config.config == {}
 
 
 def test_configuration_base_config_types():
     """Test ConfigurationBase config field accepts various types."""
-    app_id = ULID()
+    app_id = str(ULIDGenerator())
     
     # Test various data types in config
     config_data = {
@@ -89,7 +89,7 @@ def test_configuration_base_config_types():
 
 def test_configuration_create():
     """Test ConfigurationCreate model."""
-    app_id = ULID()
+    app_id = str(ULIDGenerator())
     config_create = ConfigurationCreate(
         application_id=app_id,
         name="new-config",
@@ -133,8 +133,8 @@ def test_configuration_update_partial():
 
 def test_configuration_complete():
     """Test complete Configuration model."""
-    app_id = ULID()
-    config_id = ULID()
+    app_id = str(ULIDGenerator())
+    config_id = str(ULIDGenerator())
     now = datetime.now()
     
     config = Configuration(
@@ -158,8 +158,8 @@ def test_configuration_complete():
 
 def test_configuration_json_serialization():
     """Test Configuration model JSON serialization."""
-    app_id = ULID()
-    config_id = ULID()
+    app_id = str(ULIDGenerator())
+    config_id = str(ULIDGenerator())
     now = datetime.now()
     
     config = Configuration(
@@ -173,8 +173,8 @@ def test_configuration_json_serialization():
     )
     
     json_data = config.model_dump()
-    assert json_data["id"] == str(config_id)
-    assert json_data["application_id"] == str(app_id)
+    assert json_data["id"] == config_id
+    assert json_data["application_id"] == app_id
     assert json_data["name"] == "json-config"
     assert json_data["comments"] == "JSON test"
     assert json_data["config"] == {"key": "value"}

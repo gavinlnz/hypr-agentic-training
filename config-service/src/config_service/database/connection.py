@@ -65,18 +65,78 @@ class DatabaseManager:
     
     async def execute_query(self, query: str, params: tuple = None) -> list[Dict[str, Any]]:
         """Execute a SELECT query and return results."""
-        async with self.get_connection() as conn:
-            with conn.cursor() as cursor:
-                cursor.execute(query, params)
-                return cursor.fetchall()
+        if not self._pool or not self._executor:
+            raise RuntimeError("Database pool not initialized")
+        
+        def _execute():
+            connection = None
+            try:
+                connection = self._pool.getconn()
+                with connection.cursor() as cursor:
+                    cursor.execute(query, params)
+                    return cursor.fetchall()
+            except Exception as e:
+                if connection:
+                    connection.rollback()
+                raise
+            finally:
+                if connection:
+                    self._pool.putconn(connection)
+        
+        import asyncio
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(self._executor, _execute)
     
     async def execute_command(self, command: str, params: tuple = None) -> int:
         """Execute an INSERT/UPDATE/DELETE command and return affected rows."""
-        async with self.get_connection() as conn:
-            with conn.cursor() as cursor:
-                cursor.execute(command, params)
-                conn.commit()
-                return cursor.rowcount
+        if not self._pool or not self._executor:
+            raise RuntimeError("Database pool not initialized")
+        
+        def _execute():
+            connection = None
+            try:
+                connection = self._pool.getconn()
+                with connection.cursor() as cursor:
+                    cursor.execute(command, params)
+                    connection.commit()
+                    return cursor.rowcount
+            except Exception as e:
+                if connection:
+                    connection.rollback()
+                raise
+            finally:
+                if connection:
+                    self._pool.putconn(connection)
+        
+        import asyncio
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(self._executor, _execute)
+    
+    async def execute_returning_query(self, command: str, params: tuple = None) -> list[Dict[str, Any]]:
+        """Execute an INSERT/UPDATE/DELETE command with RETURNING clause."""
+        if not self._pool or not self._executor:
+            raise RuntimeError("Database pool not initialized")
+        
+        def _execute():
+            connection = None
+            try:
+                connection = self._pool.getconn()
+                with connection.cursor() as cursor:
+                    cursor.execute(command, params)
+                    result = cursor.fetchall()
+                    connection.commit()
+                    return result
+            except Exception as e:
+                if connection:
+                    connection.rollback()
+                raise
+            finally:
+                if connection:
+                    self._pool.putconn(connection)
+        
+        import asyncio
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(self._executor, _execute)
 
 
 # Global database manager instance
