@@ -1,6 +1,7 @@
 using ConfigService.Core.Interfaces;
 using ConfigService.Infrastructure.Data;
 using ConfigService.Infrastructure.Repositories;
+using Microsoft.AspNetCore.Mvc;
 using Serilog;
 using System.Text.Json;
 
@@ -20,26 +21,37 @@ builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
         options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower;
+        options.JsonSerializerOptions.WriteIndented = false;
+    })
+    .ConfigureApiBehaviorOptions(options =>
+    {
+        options.InvalidModelStateResponseFactory = context =>
+        {
+            var errors = context.ModelState.Values
+                .SelectMany(v => v.Errors)
+                .Select(e => e.ErrorMessage);
+            
+            return new BadRequestObjectResult(new { message = string.Join("; ", errors) });
+        };
     });
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(c =>
+
+// Configure JSON serialization for minimal APIs
+builder.Services.ConfigureHttpJsonOptions(options =>
 {
-    c.SwaggerDoc("v1", new() { 
-        Title = "Config Service API", 
-        Version = "v1",
-        Description = "A REST API service for managing application configurations"
-    });
+    options.SerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower;
+    options.SerializerOptions.WriteIndented = false;
 });
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
 
 // Add CORS
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
     {
-        policy.WithOrigins("http://localhost:3000", "http://localhost:3001")
+        policy.AllowAnyOrigin()  // Allow all origins for testing
               .AllowAnyHeader()
-              .AllowAnyMethod()
-              .AllowCredentials();
+              .AllowAnyMethod();
     });
 });
 

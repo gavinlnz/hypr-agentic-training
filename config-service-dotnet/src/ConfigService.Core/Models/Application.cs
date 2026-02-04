@@ -54,7 +54,7 @@ public class Application : ApplicationBase
     /// <summary>
     /// Validates a ULID string format
     /// </summary>
-    public static bool IsValidUlid(string ulid) => UlidRegex.IsMatch(ulid);
+    public static bool IsValidUlid(string ulid) => !string.IsNullOrEmpty(ulid) && UlidRegex.IsMatch(ulid);
 }
 
 /// <summary>

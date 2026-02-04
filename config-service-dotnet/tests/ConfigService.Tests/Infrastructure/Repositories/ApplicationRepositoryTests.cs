@@ -6,12 +6,13 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Testcontainers.PostgreSql;
+using Xunit;
 
 namespace ConfigService.Tests.Infrastructure.Repositories;
 
 public class ApplicationRepositoryTests : IAsyncLifetime
 {
-    private readonly PostgreSqlContainer _postgres = new PostgreSqlBuilder()
+    private readonly PostgreSqlContainer _postgres = new PostgreSqlBuilder("postgres:15.1")
         .WithDatabase("config_service_test")
         .WithUsername("testuser")
         .WithPassword("testpass")
@@ -29,9 +30,9 @@ public class ApplicationRepositoryTests : IAsyncLifetime
             {
                 ["Database:Host"] = _postgres.Hostname,
                 ["Database:Port"] = _postgres.GetMappedPublicPort(5432).ToString(),
-                ["Database:Name"] = _postgres.Database,
-                ["Database:Username"] = _postgres.Username,
-                ["Database:Password"] = _postgres.Password
+                ["Database:Name"] = "config_service_test",
+                ["Database:Username"] = "testuser",
+                ["Database:Password"] = "testpass"
             })
             .Build();
 

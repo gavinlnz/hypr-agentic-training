@@ -1,46 +1,62 @@
-using ConfigService.Api;
 using ConfigService.Core.Models;
 using FluentAssertions;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.Extensions.DependencyInjection;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Testcontainers.PostgreSql;
+using Xunit;
 
 namespace ConfigService.Tests.Integration;
 
 public class ApplicationsIntegrationTests : IClassFixture<WebApplicationFactory<Program>>, IAsyncLifetime
 {
     private readonly WebApplicationFactory<Program> _factory;
-    private readonly HttpClient _client;
+    private HttpClient _client;
     private readonly PostgreSqlContainer _postgres;
+    private readonly JsonSerializerOptions _jsonOptions;
 
     public ApplicationsIntegrationTests(WebApplicationFactory<Program> factory)
     {
-        _postgres = new PostgreSqlBuilder()
+        _postgres = new PostgreSqlBuilder("postgres:15.1")
             .WithDatabase("config_service_integration_test")
             .WithUsername("testuser")
             .WithPassword("testpass")
             .Build();
 
-        _factory = factory.WithWebHostBuilder(builder =>
+        _factory = factory;
+        _client = null!; // Will be initialized in InitializeAsync
+        
+        _jsonOptions = new JsonSerializerOptions
         {
-            builder.UseSetting("Database:Host", _postgres.Hostname);
-            builder.UseSetting("Database:Port", _postgres.GetMappedPublicPort(5432).ToString());
-            builder.UseSetting("Database:Name", _postgres.Database);
-            builder.UseSetting("Database:Username", _postgres.Username);
-            builder.UseSetting("Database:Password", _postgres.Password);
-        });
-
-        _client = _factory.CreateClient();
+            PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower
+        };
     }
 
     public async Task InitializeAsync()
     {
         await _postgres.StartAsync();
 
+        var configuredFactory = _factory.WithWebHostBuilder(builder =>
+        {
+            builder.UseSetting("Database:Host", _postgres.Hostname);
+            builder.UseSetting("Database:Port", _postgres.GetMappedPublicPort(5432).ToString());
+            builder.UseSetting("Database:Name", "config_service_integration_test");
+            builder.UseSetting("Database:Username", "testuser");
+            builder.UseSetting("Database:Password", "testpass");
+        });
+
+        _client = configuredFactory.CreateClient();
+
+        // Configure JSON options for the test client
+        var jsonOptions = new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower
+        };
+
         // Create the applications table
-        using var scope = _factory.Services.CreateScope();
+        using var scope = configuredFactory.Services.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<ConfigService.Infrastructure.Data.DatabaseContext>();
         
         await context.ExecuteAsync(@"
@@ -59,6 +75,12 @@ public class ApplicationsIntegrationTests : IClassFixture<WebApplicationFactory<
     {
         _client.Dispose();
         await _postgres.DisposeAsync();
+    }
+
+    private async Task<T?> ReadJsonAsync<T>(HttpContent content)
+    {
+        var json = await content.ReadAsStringAsync();
+        return JsonSerializer.Deserialize<T>(json, _jsonOptions);
     }
 
     [Fact]
@@ -102,7 +124,7 @@ public class ApplicationsIntegrationTests : IClassFixture<WebApplicationFactory<
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Created);
         
-        var createdApp = await response.Content.ReadFromJsonAsync<Application>();
+        var createdApp = await ReadJsonAsync<Application>(response.Content);
         createdApp.Should().NotBeNull();
         createdApp!.Name.Should().Be(applicationData.Name);
         createdApp.Comments.Should().Be(applicationData.Comments);
@@ -198,7 +220,7 @@ public class ApplicationsIntegrationTests : IClassFixture<WebApplicationFactory<
         // Arrange
         var applicationData = new ApplicationCreate { Name = "Update Test App" };
         var createResponse = await _client.PostAsJsonAsync("/api/v1/applications", applicationData);
-        var createdApp = await createResponse.Content.ReadFromJsonAsync<Application>();
+        var createdApp = await ReadJsonAsync<Application>(createResponse.Content);
 
         var updateData = new ApplicationUpdate
         {
@@ -212,7 +234,7 @@ public class ApplicationsIntegrationTests : IClassFixture<WebApplicationFactory<
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         
-        var updatedApp = await response.Content.ReadFromJsonAsync<Application>();
+        var updatedApp = await ReadJsonAsync<Application>(response.Content);
         updatedApp.Should().NotBeNull();
         updatedApp!.Id.Should().Be(createdApp.Id);
         updatedApp.Name.Should().Be(updateData.Name);

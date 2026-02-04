@@ -191,13 +191,16 @@ public class ApplicationRepository : IApplicationRepository
 
     private static Application MapApplication(IDataReader reader)
     {
+        var createdAt = reader["created_at"];
+        var updatedAt = reader["updated_at"];
+        
         return new Application
         {
             Id = reader["id"].ToString()!,
             Name = reader["name"].ToString()!,
             Comments = reader["comments"] == DBNull.Value ? null : reader["comments"].ToString(),
-            CreatedAt = (DateTime)reader["created_at"],
-            UpdatedAt = (DateTime)reader["updated_at"]
+            CreatedAt = createdAt == DBNull.Value ? DateTime.UtcNow : Convert.ToDateTime(createdAt),
+            UpdatedAt = updatedAt == DBNull.Value ? DateTime.UtcNow : Convert.ToDateTime(updatedAt)
         };
     }
 }
