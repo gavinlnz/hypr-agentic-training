@@ -53,7 +53,7 @@ export abstract class BaseComponent extends HTMLElement {
     return this.shadow.querySelectorAll(selector);
   }
 
-  protected emit<T>(eventName: string, detail?: T): void {
+  protected emit(eventName: string, detail?: any): void {
     this.dispatchEvent(
       new CustomEvent(eventName, {
         detail,

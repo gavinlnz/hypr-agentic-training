@@ -30,7 +30,7 @@ public class DatabaseContext : IDisposable
     /// <summary>
     /// Get a database connection
     /// </summary>
-    public async Task<IDbConnection> GetConnectionAsync()
+    public async Task<NpgsqlConnection> GetConnectionAsync()
     {
         if (_connection == null || _connection.State != ConnectionState.Open)
         {

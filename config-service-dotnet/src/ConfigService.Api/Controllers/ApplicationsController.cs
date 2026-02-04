@@ -1,5 +1,6 @@
 using ConfigService.Core.Interfaces;
 using ConfigService.Core.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.ComponentModel.DataAnnotations;
 
@@ -26,8 +27,10 @@ public class ApplicationsController : ControllerBase
     /// Create a new application
     /// </summary>
     [HttpPost]
+    [Authorize] // Require authentication
     [ProducesResponseType(typeof(Application), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<Application>> CreateApplication([FromBody] ApplicationCreate applicationData)
@@ -55,8 +58,10 @@ public class ApplicationsController : ControllerBase
     /// Get application by ID including related configuration IDs
     /// </summary>
     [HttpGet("{id}")]
+    [Authorize] // Require authentication
     [ProducesResponseType(typeof(ApplicationWithConfigs), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<ApplicationWithConfigs>> GetApplication([FromRoute] string id)
@@ -86,7 +91,9 @@ public class ApplicationsController : ControllerBase
     /// Get all applications
     /// </summary>
     [HttpGet]
+    [Authorize] // Require authentication
     [ProducesResponseType(typeof(List<Application>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<List<Application>>> ListApplications()
     {
@@ -106,8 +113,10 @@ public class ApplicationsController : ControllerBase
     /// Update an existing application
     /// </summary>
     [HttpPut("{id}")]
+    [Authorize] // Require authentication
     [ProducesResponseType(typeof(Application), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
@@ -143,8 +152,10 @@ public class ApplicationsController : ControllerBase
     /// Delete an application by ID
     /// </summary>
     [HttpDelete("{id}")]
+    [Authorize] // Require authentication
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> DeleteApplication([FromRoute] string id)
@@ -174,8 +185,10 @@ public class ApplicationsController : ControllerBase
     /// Delete multiple applications by IDs
     /// </summary>
     [HttpDelete]
+    [Authorize] // Require authentication
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> DeleteApplications([FromBody] DeleteApplicationsRequest request)

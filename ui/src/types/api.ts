@@ -12,6 +12,10 @@ export interface ApplicationWithConfigs extends Application {
   configuration_ids: string[]; // ULID[]
 }
 
+export interface ApplicationComplete extends ApplicationWithConfigs {
+  // Complete application data with all related information
+}
+
 export interface ApplicationCreate {
   name: string;
   comments?: string;
@@ -46,13 +50,13 @@ export interface ConfigurationUpdate {
 }
 
 // API response types
-export interface ApiError {
+export interface ApiErrorResponse {
   detail: string;
 }
 
 export interface ApiResponse<T> {
   data?: T;
-  error?: ApiError;
+  error?: ApiErrorResponse;
 }
 
 // UI state types
