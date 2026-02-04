@@ -3,6 +3,7 @@ using ConfigService.Core.Models;
 using ConfigService.Core.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace ConfigService.Api.Controllers;
 
@@ -57,9 +58,11 @@ public class AuthController : ControllerBase
     /// Get OAuth authorization URL for a provider
     /// </summary>
     [HttpGet("authorize/{provider}")]
+    [EnableRateLimiting("AuthPolicy")]
     [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     public async Task<ActionResult> GetAuthorizationUrl(
         [FromRoute] string provider,
         [FromQuery] string? returnUrl = null)
@@ -90,8 +93,10 @@ public class AuthController : ControllerBase
     /// Handle OAuth callback from provider (GET request with query parameters)
     /// </summary>
     [HttpGet("callback")]
+    [EnableRateLimiting("AuthPolicy")]
     [ProducesResponseType(StatusCodes.Status302Found)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     public async Task<IActionResult> HandleOAuthCallback(
         [FromQuery] string? code,
         [FromQuery] string? state,
@@ -173,9 +178,11 @@ public class AuthController : ControllerBase
     /// Handle OAuth callback and complete authentication (POST for API clients)
     /// </summary>
     [HttpPost("callback")]
+    [EnableRateLimiting("AuthPolicy")]
     [ProducesResponseType(typeof(LoginResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<LoginResponse>> HandleCallback([FromBody] OAuthCallbackRequest request)
     {
@@ -232,9 +239,11 @@ public class AuthController : ControllerBase
     /// Refresh JWT token
     /// </summary>
     [HttpPost("refresh")]
+    [EnableRateLimiting("AuthPolicy")]
     [ProducesResponseType(typeof(LoginResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     public async Task<ActionResult<LoginResponse>> RefreshToken([FromBody] RefreshTokenRequest request)
     {
         try

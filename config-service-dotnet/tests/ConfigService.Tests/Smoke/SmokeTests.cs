@@ -1,5 +1,7 @@
+using ConfigService.Tests.Helpers;
 using FluentAssertions;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.Extensions.DependencyInjection;
 using System.Net;
 using System.Text.Json;
 using Xunit;
@@ -17,8 +19,30 @@ public class SmokeTests : IClassFixture<WebApplicationFactory<Program>>
 
     public SmokeTests(WebApplicationFactory<Program> factory)
     {
-        _factory = factory;
-        _client = _factory.CreateClient();
+        var configuredFactory = factory.WithWebHostBuilder(builder =>
+        {
+            // Disable authentication for smoke tests
+            builder.UseSetting("Jwt:Key", "test-key-that-is-at-least-32-characters-long-for-testing");
+            builder.UseSetting("Jwt:Issuer", "ConfigServiceTest");
+            builder.UseSetting("Jwt:Audience", "ConfigServiceTest");
+            
+            builder.ConfigureServices(services =>
+            {
+                // Remove authentication and authorization for tests
+                services.AddAuthentication("Test")
+                    .AddScheme<Microsoft.AspNetCore.Authentication.AuthenticationSchemeOptions, TestAuthenticationHandler>(
+                        "Test", options => { });
+                services.AddAuthorization(options =>
+                {
+                    options.DefaultPolicy = new Microsoft.AspNetCore.Authorization.AuthorizationPolicyBuilder("Test")
+                        .RequireAssertion(_ => true) // Always allow
+                        .Build();
+                });
+            });
+        });
+
+        _factory = configuredFactory;
+        _client = configuredFactory.CreateClient();
     }
 
     [Fact]

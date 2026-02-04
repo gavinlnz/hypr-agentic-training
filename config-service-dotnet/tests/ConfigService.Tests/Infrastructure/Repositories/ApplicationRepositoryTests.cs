@@ -51,6 +51,29 @@ public class ApplicationRepositoryTests : IAsyncLifetime
             CREATE INDEX idx_applications_name ON applications(name);
         ");
 
+        // Create the configurations table (needed for GetByIdWithConfigsAsync)
+        await _context.ExecuteAsync(@"
+            CREATE TABLE configurations (
+                id VARCHAR(26) PRIMARY KEY,
+                application_id VARCHAR(26) NOT NULL,
+                name VARCHAR(256) NOT NULL,
+                comments VARCHAR(1024),
+                config JSONB NOT NULL DEFAULT '{}',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                
+                CONSTRAINT fk_configurations_application 
+                    FOREIGN KEY (application_id) 
+                    REFERENCES applications(id) 
+                    ON DELETE CASCADE,
+                
+                CONSTRAINT uq_configurations_app_name 
+                    UNIQUE (application_id, name)
+            );
+            CREATE INDEX idx_configurations_application_id ON configurations(application_id);
+            CREATE INDEX idx_configurations_name ON configurations(name);
+        ");
+
         var repositoryLogger = Mock.Of<ILogger<ApplicationRepository>>();
         _repository = new ApplicationRepository(_context, repositoryLogger);
     }

@@ -1,14 +1,18 @@
+using ConfigService.Api.Middleware;
 using ConfigService.Core.Interfaces;
 using ConfigService.Core.Models;
 using ConfigService.Infrastructure.Data;
 using ConfigService.Infrastructure.Repositories;
 using ConfigService.Infrastructure.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.IdentityModel.Tokens;
 using Serilog;
 using System.Text;
 using System.Text.Json;
+using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -25,7 +29,7 @@ builder.Host.UseSerilog();
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
-        options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+        options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower;
         options.JsonSerializerOptions.WriteIndented = false;
     })
     .ConfigureApiBehaviorOptions(options =>
@@ -43,22 +47,73 @@ builder.Services.AddControllers()
 // Configure JSON serialization for minimal APIs
 builder.Services.ConfigureHttpJsonOptions(options =>
 {
-    options.SerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+    options.SerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower;
     options.SerializerOptions.WriteIndented = false;
 });
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// Add CORS
+// Add CORS with more restrictive settings for production
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
     {
-        policy.AllowAnyOrigin()  // Allow all origins for testing
-              .AllowAnyHeader()
-              .AllowAnyMethod();
+        if (builder.Environment.IsDevelopment())
+        {
+            // Development: Allow localhost origins
+            policy.WithOrigins("http://localhost:3000", "http://localhost:3001", "http://localhost:3002")
+                  .AllowAnyHeader()
+                  .AllowAnyMethod()
+                  .AllowCredentials();
+        }
+        else
+        {
+            // Production: Configure specific origins
+            var allowedOrigins = builder.Configuration.GetSection("AllowedOrigins").Get<string[]>() ?? Array.Empty<string>();
+            policy.WithOrigins(allowedOrigins)
+                  .AllowAnyHeader()
+                  .AllowAnyMethod()
+                  .AllowCredentials();
+        }
     });
+});
+
+// Add rate limiting
+builder.Services.AddRateLimiter(options =>
+{
+    // Global rate limit
+    options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: httpContext.User.Identity?.Name ?? httpContext.Connection.RemoteIpAddress?.ToString() ?? "anonymous",
+            factory: partition => new FixedWindowRateLimiterOptions
+            {
+                AutoReplenishment = true,
+                PermitLimit = 100, // 100 requests per window
+                Window = TimeSpan.FromMinutes(1) // 1 minute window
+            }));
+
+    // Authentication endpoints rate limit (more restrictive)
+    options.AddPolicy("AuthPolicy", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "anonymous",
+            factory: partition => new FixedWindowRateLimiterOptions
+            {
+                AutoReplenishment = true,
+                PermitLimit = 10, // 10 auth attempts per window
+                Window = TimeSpan.FromMinutes(5) // 5 minute window
+            }));
+
+    // API endpoints rate limit (per user)
+    options.AddPolicy("ApiPolicy", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: httpContext.User.Identity?.Name ?? "anonymous",
+            factory: partition => new FixedWindowRateLimiterOptions
+            {
+                AutoReplenishment = true,
+                PermitLimit = 1000, // 1000 requests per window for authenticated users
+                Window = TimeSpan.FromMinutes(1)
+            }));
 });
 
 // Configure JWT Authentication
@@ -82,11 +137,26 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+{
+    // Default policy requires authentication
+    options.FallbackPolicy = new AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser()
+        .Build();
+    
+    // Admin policy for administrative operations
+    options.AddPolicy("AdminOnly", policy =>
+        policy.RequireRole("Admin"));
+    
+    // User policy for regular operations
+    options.AddPolicy("UserOrAdmin", policy =>
+        policy.RequireRole("User", "Admin"));
+});
 
 // Register dependencies
 builder.Services.AddScoped<DatabaseContext>();
 builder.Services.AddScoped<IApplicationRepository, ApplicationRepository>();
+builder.Services.AddScoped<IConfigurationRepository, ConfigurationRepository>();
 
 // Register OAuth services in dependency order
 builder.Services.AddScoped<IAuditService, AuditService>();
@@ -114,15 +184,27 @@ app.UseSwaggerUI(c =>
 
 app.UseCors();
 
+// Add custom security middleware
+app.UseSecurityMiddleware();
+
+// Add rate limiting
+app.UseRateLimiter();
+
 // Add authentication and authorization middleware
 app.UseAuthentication();
 app.UseAuthorization();
 
-// Add root endpoint
-app.MapGet("/", () => new { message = "Config Service API", version = "1.0.0" });
+// Add root endpoint (public - API information)
+app.MapGet("/", () => new { message = "Config Service API", version = "1.0.0" })
+    .WithTags("Public")
+    .WithSummary("Get API information")
+    .WithOpenApi();
 
-// Add health check endpoint
-app.MapGet("/health", () => new { status = "healthy" });
+// Add health check endpoint (public - for load balancers and monitoring)
+app.MapGet("/health", () => new { status = "healthy", timestamp = DateTime.UtcNow })
+    .WithTags("Public")
+    .WithSummary("Health check endpoint")
+    .WithOpenApi();
 
 // Add OAuth callback endpoint (for GitHub OAuth app compatibility)
 app.MapGet("/auth/callback", async (

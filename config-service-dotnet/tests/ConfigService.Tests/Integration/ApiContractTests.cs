@@ -1,4 +1,5 @@
 using ConfigService.Core.Models;
+using ConfigService.Tests.Helpers;
 using FluentAssertions;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
@@ -49,6 +50,25 @@ public class ApiContractTests : IClassFixture<WebApplicationFactory<Program>>, I
             builder.UseSetting("Database:Name", "config_service_contract_test");
             builder.UseSetting("Database:Username", "testuser");
             builder.UseSetting("Database:Password", "testpass");
+            
+            // Disable authentication for tests
+            builder.UseSetting("Jwt:Key", "test-key-that-is-at-least-32-characters-long-for-testing");
+            builder.UseSetting("Jwt:Issuer", "ConfigServiceTest");
+            builder.UseSetting("Jwt:Audience", "ConfigServiceTest");
+            
+            builder.ConfigureServices(services =>
+            {
+                // Remove authentication and authorization for tests
+                services.AddAuthentication("Test")
+                    .AddScheme<Microsoft.AspNetCore.Authentication.AuthenticationSchemeOptions, TestAuthenticationHandler>(
+                        "Test", options => { });
+                services.AddAuthorization(options =>
+                {
+                    options.DefaultPolicy = new Microsoft.AspNetCore.Authorization.AuthorizationPolicyBuilder("Test")
+                        .RequireAssertion(_ => true) // Always allow
+                        .Build();
+                });
+            });
         });
 
         _client = configuredFactory.CreateClient();
@@ -65,6 +85,26 @@ public class ApiContractTests : IClassFixture<WebApplicationFactory<Program>>, I
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
             CREATE INDEX IF NOT EXISTS idx_applications_name ON applications(name);
+            
+            CREATE TABLE IF NOT EXISTS configurations (
+                id VARCHAR(26) PRIMARY KEY,
+                application_id VARCHAR(26) NOT NULL,
+                name VARCHAR(256) NOT NULL,
+                comments VARCHAR(1024),
+                config JSONB NOT NULL DEFAULT '{}',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                
+                CONSTRAINT fk_configurations_application 
+                    FOREIGN KEY (application_id) 
+                    REFERENCES applications(id) 
+                    ON DELETE CASCADE,
+                
+                CONSTRAINT uq_configurations_app_name 
+                    UNIQUE (application_id, name)
+            );
+            CREATE INDEX IF NOT EXISTS idx_configurations_application_id ON configurations(application_id);
+            CREATE INDEX IF NOT EXISTS idx_configurations_name ON configurations(name);
         ");
     }
 

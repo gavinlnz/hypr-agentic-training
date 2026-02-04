@@ -78,25 +78,19 @@ public class ApplicationRepository : IApplicationRepository
 
     public async Task<ApplicationWithConfigs?> GetByIdWithConfigsAsync(string id)
     {
-        // For now, just return the application without configs since configurations table doesn't exist yet
-        const string sql = "SELECT id, name, comments, created_at, updated_at FROM applications WHERE id = @Id";
+        const string sql = @"
+            SELECT 
+                a.id, a.name, a.comments, a.created_at, a.updated_at,
+                COALESCE(
+                    ARRAY_AGG(c.id ORDER BY c.name) FILTER (WHERE c.id IS NOT NULL), 
+                    ARRAY[]::VARCHAR[]
+                ) as configuration_ids
+            FROM applications a
+            LEFT JOIN configurations c ON a.id = c.application_id
+            WHERE a.id = @Id
+            GROUP BY a.id, a.name, a.comments, a.created_at, a.updated_at";
         
-        var application = await _context.QuerySingleOrDefaultAsync(sql, new { Id = id }, MapApplication);
-        
-        if (application == null)
-        {
-            return null;
-        }
-
-        return new ApplicationWithConfigs
-        {
-            Id = application.Id,
-            Name = application.Name,
-            Comments = application.Comments,
-            CreatedAt = application.CreatedAt,
-            UpdatedAt = application.UpdatedAt,
-            ConfigurationIds = new List<string>() // Empty for now
-        };
+        return await _context.QuerySingleOrDefaultAsync(sql, new { Id = id }, MapApplicationWithConfigs);
     }
 
     public async Task<List<Application>> GetAllAsync()
@@ -201,6 +195,31 @@ public class ApplicationRepository : IApplicationRepository
             Comments = reader["comments"] == DBNull.Value ? null : reader["comments"].ToString(),
             CreatedAt = createdAt == DBNull.Value ? DateTime.UtcNow : Convert.ToDateTime(createdAt),
             UpdatedAt = updatedAt == DBNull.Value ? DateTime.UtcNow : Convert.ToDateTime(updatedAt)
+        };
+    }
+
+    private static ApplicationWithConfigs MapApplicationWithConfigs(IDataReader reader)
+    {
+        var createdAt = reader["created_at"];
+        var updatedAt = reader["updated_at"];
+        
+        // Handle PostgreSQL array of configuration IDs
+        var configurationIds = new List<string>();
+        var configIdsValue = reader["configuration_ids"];
+        if (configIdsValue != DBNull.Value)
+        {
+            var configIdsArray = (string[])configIdsValue;
+            configurationIds = configIdsArray.ToList();
+        }
+        
+        return new ApplicationWithConfigs
+        {
+            Id = reader["id"].ToString()!,
+            Name = reader["name"].ToString()!,
+            Comments = reader["comments"] == DBNull.Value ? null : reader["comments"].ToString(),
+            CreatedAt = createdAt == DBNull.Value ? DateTime.UtcNow : Convert.ToDateTime(createdAt),
+            UpdatedAt = updatedAt == DBNull.Value ? DateTime.UtcNow : Convert.ToDateTime(updatedAt),
+            ConfigurationIds = configurationIds
         };
     }
 }
