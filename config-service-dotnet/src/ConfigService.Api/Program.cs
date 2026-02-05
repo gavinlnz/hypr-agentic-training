@@ -29,7 +29,7 @@ builder.Host.UseSerilog();
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
-        options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower;
+        options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
         options.JsonSerializerOptions.WriteIndented = false;
     })
     .ConfigureApiBehaviorOptions(options =>
@@ -47,7 +47,7 @@ builder.Services.AddControllers()
 // Configure JSON serialization for minimal APIs
 builder.Services.ConfigureHttpJsonOptions(options =>
 {
-    options.SerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower;
+    options.SerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
     options.SerializerOptions.WriteIndented = false;
 });
 
@@ -163,7 +163,6 @@ builder.Services.AddScoped<IAuditService, AuditService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddHttpClient<IOAuthService, OAuthService>();
-builder.Services.AddScoped<IOAuthService, OAuthService>();
 
 var app = builder.Build();
 

@@ -45,10 +45,12 @@ export abstract class BaseComponent extends HTMLElement {
     return template;
   }
 
+  // Query single element
   protected $(selector: string): Element | null {
     return this.shadow.querySelector(selector);
   }
 
+  // Query multiple elements
   protected $$(selector: string): NodeListOf<Element> {
     return this.shadow.querySelectorAll(selector);
   }

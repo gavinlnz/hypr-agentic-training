@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CORS Test</title>
+</head>
+<body>
+    <h1>Testing CORS and OAuth Providers</h1>
+    <button onclick="testProviders()">Test Providers Endpoint</button>
+    <div id="result"></div>
+    
+    <script>
+        async function testProviders() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '<p>Testing...</p>';
+            
+            try {
+                console.log('Fetching from: http://localhost:8000/api/v1/auth/providers');
+                
+                const response = await fetch('http://localhost:8000/api/v1/auth/providers', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'include'
+                });
+                
+                console.log('Response status:', response.status);
+                console.log('Response headers:', [...response.headers.entries()]);
+                
+                const data = await response.json();
+                console.log('Response data:', data);
+                
+                resultDiv.innerHTML = `
+                    <h3>Success!</h3>
+                    <p>Status: ${response.status}</p>
+                    <h4>Headers:</h4>
+                    <pre>${JSON.stringify([...response.headers.entries()], null, 2)}</pre>
+                    <h4>Data:</h4>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+            } catch (error) {
+                console.error('Error:', error);
+                resultDiv.innerHTML = `
+                    <h3 style="color: red;">Error!</h3>
+                    <p>${error.message}</p>
+                    <p>Check the browser console for more details.</p>
+                `;
+            }
+        }
+        
+        // Auto-run on load
+        window.addEventListener('load', testProviders);
+    </script>
+</body>
+</html>

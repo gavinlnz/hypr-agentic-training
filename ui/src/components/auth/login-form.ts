@@ -101,7 +101,6 @@ export class LoginForm extends BaseComponent {
                 font-size: 16px;
                 font-weight: 500;
                 cursor: pointer;
-                transition: all 0.2s ease;
                 text-decoration: none;
                 position: relative;
             }
@@ -109,7 +108,6 @@ export class LoginForm extends BaseComponent {
             .oauth-button:hover {
                 border-color: #667eea;
                 background: #f8f9ff;
-                transform: translateY(-1px);
             }
 
             .oauth-button:disabled {
@@ -121,6 +119,8 @@ export class LoginForm extends BaseComponent {
             .oauth-icon {
                 width: 20px;
                 height: 20px;
+                flex-shrink: 0;
+                display: block;
             }
 
             .oauth-loading {
@@ -228,7 +228,6 @@ export class LoginForm extends BaseComponent {
                         src="${provider.iconUrl}" 
                         alt="${provider.displayName}" 
                         class="oauth-icon"
-                        onerror="this.style.display='none'"
                     >
                     <span class="oauth-text">Continue with ${provider.displayName}</span>
                     <div class="oauth-loading" style="display: none;">

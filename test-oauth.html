@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>OAuth Test</title>
+</head>
+<body>
+    <h1>OAuth Provider Test</h1>
+    <div id="result"></div>
+    <script>
+        async function testOAuth() {
+            try {
+                const response = await fetch('http://localhost:8000/api/v1/auth/providers');
+                const data = await response.json();
+                document.getElementById('result').innerHTML = '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+                console.log('OAuth providers:', data);
+            } catch (error) {
+                document.getElementById('result').innerHTML = '<p style="color: red;">Error: ' + error.message + '</p>';
+                console.error('Error fetching providers:', error);
+            }
+        }
+        testOAuth();
+    </script>
+</body>
+</html>

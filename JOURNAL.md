@@ -2522,3 +2522,171 @@ The Configuration Management implementation represents a significant milestone i
 - **TESTING**: OAuth flow tested end-to-end with successful user authentication
 
 **Key Achievement**: Transformed an unsecured application into a production-ready system with federated authentication, comprehensive security features, and excellent user experience. The OAuth implementation provides a solid foundation for secure multi-user access to the Config Service.
+### Journal Entry 23: GitHub OAuth Integration and UI Fixes
+
+- **Prompt**: Fix GitHub OAuth sign-in not showing and complete the authentication flow
+- **Tool**: Kiro AI Assistant
+- **Mode**: Debug & Act
+- **Context**: OAuth backend implemented but UI not displaying GitHub provider
+- **Model**: Auto
+- **Input**: User reports GitHub OAuth button not appearing on login page
+- **Output**: Complete OAuth integration with working GitHub authentication flow
+- **Cost**: High - comprehensive debugging and integration work
+- **Reflections**: **Critical Learning - Full-Stack OAuth Integration and API Contract Consistency**:
+
+  **Problem Analysis - Multi-Layer Integration Issues**:
+  
+  1. **API Property Naming Mismatch**:
+     ```json
+     // API returned snake_case but UI expected camelCase
+     API: {"display_name": "GitHub", "is_enabled": true}
+     UI:  {displayName: "GitHub", isEnabled: true}
+     ```
+  
+  2. **Authentication Requirements on Public Endpoints**:
+     ```csharp
+     // OAuth endpoints required authentication but should be public
+     [HttpGet("providers")]           // Missing [AllowAnonymous]
+     [HttpGet("authorize/{provider}")] // Missing [AllowAnonymous]
+     [HttpGet("callback")]           // Missing [AllowAnonymous]
+     ```
+  
+  3. **Incorrect OAuth Callback URLs**:
+     ```csharp
+     // Wrong: /auth/callback (missing API prefix)
+     var callbackUrl = $"{baseUrl}/auth/callback";
+     
+     // Correct: /api/v1/auth/callback (matches controller route)
+     var callbackUrl = $"{baseUrl}/api/v1/auth/callback";
+     ```
+  
+  4. **Hardcoded Port Redirects**:
+     ```csharp
+     // Wrong: Always redirect to port 3002
+     return Redirect("http://localhost:3002/?error=...");
+     
+     // Correct: Use stored return URL from OAuth state
+     var returnUrl = await GetReturnUrlFromStateAsync(state);
+     return Redirect($"{returnUrl}/?error=...");
+     ```
+
+  **Solutions Implemented**:
+
+  **1. Fixed JSON Serialization Configuration**:
+  ```csharp
+  // Changed from snake_case to camelCase for frontend compatibility
+  builder.Services.AddControllers()
+      .AddJsonOptions(options =>
+      {
+          options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+      });
+  ```
+
+  **2. Added Public Access to OAuth Endpoints**:
+  ```csharp
+  [HttpGet("providers")]
+  [AllowAnonymous]  // ← Added for public access
+  
+  [HttpGet("authorize/{provider}")]
+  [AllowAnonymous]  // ← Added for public access
+  
+  [HttpGet("callback")]
+  [AllowAnonymous]  // ← Added for public access
+  ```
+
+  **3. Fixed OAuth Service Callback URLs**:
+  ```csharp
+  // Updated both authorization and token exchange URLs
+  var callbackUrl = $"{_oauthConfig.CallbackBaseUrl}/api/v1/auth/callback";
+  ```
+
+  **4. Implemented Dynamic Return URL Handling**:
+  ```csharp
+  // Retrieve return URL from OAuth state instead of hardcoding
+  private async Task<string?> GetReturnUrlFromStateAsync(string stateId)
+  {
+      const string sql = "SELECT return_url FROM oauth_states WHERE id = @id";
+      // ... database query implementation
+  }
+  
+  // Use dynamic return URL in all redirect scenarios
+  var returnUrl = await GetReturnUrlFromStateAsync(state) ?? "http://localhost:3001";
+  return Redirect($"{returnUrl}/auth/callback?token={token}...");
+  ```
+
+  **5. Fixed Dependency Injection Issues**:
+  ```csharp
+  // Removed duplicate service registration causing ASP0019 warnings
+  // Before: Both AddHttpClient<> and AddScoped<> for same service
+  builder.Services.AddHttpClient<IOAuthService, OAuthService>();
+  builder.Services.AddScoped<IOAuthService, OAuthService>(); // ← Removed duplicate
+  
+  // After: Only AddHttpClient<> which automatically registers as scoped
+  builder.Services.AddHttpClient<IOAuthService, OAuthService>();
+  ```
+
+  **6. Fixed UI Component Method Naming**:
+  ```typescript
+  // Fixed duplicate method names in BaseComponent
+  protected $(selector: string): Element | null {          // Single element
+      return this.shadow.querySelector(selector);
+  }
+  
+  protected $$(selector: string): NodeListOf<Element> {    // Multiple elements
+      return this.shadow.querySelectorAll(selector);
+  }
+  ```
+
+  **7. Eliminated CSS Hover Strobing**:
+  ```css
+  /* Removed transform that caused hover flickering */
+  .oauth-button:hover {
+      border-color: #667eea;
+      background: #f8f9ff;
+      /* transform: translateY(-1px); ← Removed */
+  }
+  ```
+
+  **Technical Debugging Process**:
+
+  1. **Network Analysis**: Used browser DevTools to trace API calls
+  2. **Response Inspection**: Identified property naming mismatch
+  3. **Authentication Flow**: Traced 401 errors to missing [AllowAnonymous]
+  4. **URL Analysis**: Discovered callback URL path mismatch
+  5. **State Management**: Implemented proper OAuth state retrieval
+  6. **DI Container**: Resolved service registration conflicts
+
+  **Key Integration Insights**:
+
+  - **API Contract Consistency**: Frontend and backend must agree on property naming
+  - **OAuth Security Model**: Public endpoints for authentication flow, protected for user data
+  - **State Management**: OAuth state should store and retrieve return URLs dynamically
+  - **URL Path Consistency**: Callback URLs must match exact controller routes
+  - **Service Registration**: Avoid duplicate DI registrations that cause warnings
+  - **CSS Hover Effects**: Avoid transforms that can cause mouse position issues
+
+  **User Experience Improvements**:
+  - ✅ **GitHub Button Visible**: OAuth provider displays correctly
+  - ✅ **Smooth Hover**: No strobing or flickering on button hover
+  - ✅ **Correct Redirects**: Returns to same port user started from
+  - ✅ **Clean Startup**: No ASP0019 dependency injection warnings
+  - ✅ **Complete Flow**: Full OAuth authentication from login to callback
+
+  **OAuth Flow Verification**:
+  1. User visits http://localhost:3001/
+  2. Clicks "Continue with GitHub" button
+  3. Redirects to GitHub OAuth authorization
+  4. User authorizes application
+  5. GitHub redirects to http://localhost:8000/api/v1/auth/callback
+  6. Backend processes OAuth callback and generates JWT
+  7. Redirects back to http://localhost:3001/auth/callback with token
+  8. Frontend processes authentication and shows main app
+
+  **Production Readiness**:
+  - **Security**: Proper OAuth state validation and CSRF protection
+  - **Error Handling**: Comprehensive error scenarios with user feedback
+  - **Logging**: Detailed audit logs for all authentication events
+  - **Configuration**: Environment-based OAuth provider configuration
+  - **Scalability**: Stateless JWT tokens for horizontal scaling
+
+  This OAuth integration demonstrates advanced full-stack authentication patterns, proper API contract design, and comprehensive error handling. The debugging process revealed critical insights about cross-layer integration challenges in modern web applications.

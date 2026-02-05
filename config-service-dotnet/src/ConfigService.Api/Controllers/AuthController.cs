@@ -1,9 +1,11 @@
 using ConfigService.Core.Interfaces;
 using ConfigService.Core.Models;
 using ConfigService.Core.Services;
+using ConfigService.Infrastructure.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using Npgsql;
 
 namespace ConfigService.Api.Controllers;
 
@@ -20,25 +22,29 @@ public class AuthController : ControllerBase
     private readonly IUserService _userService;
     private readonly IAuditService _auditService;
     private readonly ILogger<AuthController> _logger;
+    private readonly DatabaseContext _context;
 
     public AuthController(
         IOAuthService oauthService,
         ITokenService tokenService,
         IUserService userService,
         IAuditService auditService,
-        ILogger<AuthController> logger)
+        ILogger<AuthController> logger,
+        DatabaseContext context)
     {
         _oauthService = oauthService;
         _tokenService = tokenService;
         _userService = userService;
         _auditService = auditService;
         _logger = logger;
+        _context = context;
     }
 
     /// <summary>
     /// Get available OAuth providers
     /// </summary>
     [HttpGet("providers")]
+    [AllowAnonymous]
     [ProducesResponseType(typeof(List<OAuthProvider>), StatusCodes.Status200OK)]
     public async Task<ActionResult<List<OAuthProvider>>> GetProviders()
     {
@@ -58,6 +64,7 @@ public class AuthController : ControllerBase
     /// Get OAuth authorization URL for a provider
     /// </summary>
     [HttpGet("authorize/{provider}")]
+    [AllowAnonymous]
     [EnableRateLimiting("AuthPolicy")]
     [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -93,6 +100,7 @@ public class AuthController : ControllerBase
     /// Handle OAuth callback from provider (GET request with query parameters)
     /// </summary>
     [HttpGet("callback")]
+    [AllowAnonymous]
     [EnableRateLimiting("AuthPolicy")]
     [ProducesResponseType(StatusCodes.Status302Found)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -105,15 +113,26 @@ public class AuthController : ControllerBase
     {
         try
         {
+            // Get the return URL from OAuth state, fallback to localhost:3001
+            var returnUrl = "http://localhost:3001";
+            if (!string.IsNullOrEmpty(state))
+            {
+                var storedReturnUrl = await GetReturnUrlFromStateAsync(state);
+                if (!string.IsNullOrEmpty(storedReturnUrl))
+                {
+                    returnUrl = storedReturnUrl;
+                }
+            }
+
             if (!string.IsNullOrEmpty(error))
             {
                 _logger.LogWarning("OAuth error received: {Error}", error);
-                return Redirect($"http://localhost:3002/?error={Uri.EscapeDataString(error)}");
+                return Redirect($"{returnUrl}/?error={Uri.EscapeDataString(error)}");
             }
 
             if (string.IsNullOrEmpty(code) || string.IsNullOrEmpty(provider))
             {
-                return Redirect("http://localhost:3002/?error=missing_parameters");
+                return Redirect($"{returnUrl}/?error=missing_parameters");
             }
 
             // Handle the OAuth callback
@@ -141,7 +160,7 @@ public class AuthController : ControllerBase
                     Details = $"Failed OAuth login attempt for provider: {provider}"
                 });
 
-                return Redirect("http://localhost:3002/?error=authentication_failed");
+                return Redirect($"{returnUrl}/?error=authentication_failed");
             }
 
             // Log successful login
@@ -159,7 +178,7 @@ public class AuthController : ControllerBase
             });
 
             // Redirect to frontend with authentication data
-            var redirectUrl = $"http://localhost:3002/auth/callback" +
+            var redirectUrl = $"{returnUrl}/auth/callback" +
                 $"?token={Uri.EscapeDataString(result.Token)}" +
                 $"&refresh_token={Uri.EscapeDataString(result.RefreshToken)}" +
                 $"&expires_at={Uri.EscapeDataString(result.ExpiresAt.ToString("O"))}" +
@@ -170,7 +189,8 @@ public class AuthController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error handling OAuth callback");
-            return Redirect("http://localhost:3002/?error=server_error");
+            var fallbackUrl = "http://localhost:3001";
+            return Redirect($"{fallbackUrl}/?error=server_error");
         }
     }
 
@@ -178,6 +198,7 @@ public class AuthController : ControllerBase
     /// Handle OAuth callback and complete authentication (POST for API clients)
     /// </summary>
     [HttpPost("callback")]
+    [AllowAnonymous]
     [EnableRateLimiting("AuthPolicy")]
     [ProducesResponseType(typeof(LoginResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -385,6 +406,30 @@ public class AuthController : ControllerBase
         {
             _logger.LogError(ex, "Error updating user role");
             return StatusCode(500, new { message = "An error occurred updating user role" });
+        }
+    }
+
+    private async Task<string?> GetReturnUrlFromStateAsync(string stateId)
+    {
+        try
+        {
+            const string sql = @"
+                SELECT return_url FROM oauth_states 
+                WHERE id = @id AND expires_at > @now";
+
+            await using var connection = await _context.GetConnectionAsync();
+            await using var command = new NpgsqlCommand(sql, connection);
+            
+            command.Parameters.AddWithValue("@id", stateId);
+            command.Parameters.AddWithValue("@now", DateTime.UtcNow);
+
+            var result = await command.ExecuteScalarAsync();
+            return result?.ToString();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving return URL from OAuth state");
+            return null;
         }
     }
 }

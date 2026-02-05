@@ -93,7 +93,7 @@ public class OAuthService : IOAuthService
         var state = await CreateOAuthStateAsync(provider, returnUrl);
 
         // Build authorization URL
-        var callbackUrl = $"{_oauthConfig.CallbackBaseUrl}/auth/callback?provider={Uri.EscapeDataString(provider)}";
+        var callbackUrl = $"{_oauthConfig.CallbackBaseUrl}/api/v1/auth/callback?provider={Uri.EscapeDataString(provider)}";
         var scopes = string.Join(" ", config.Scopes);
 
         var authUrl = new StringBuilder(config.AuthorizeUrl);
@@ -270,7 +270,7 @@ public class OAuthService : IOAuthService
 
         try
         {
-            var callbackUrl = $"{_oauthConfig.CallbackBaseUrl}/auth/callback";
+            var callbackUrl = $"{_oauthConfig.CallbackBaseUrl}/api/v1/auth/callback";
             
             var parameters = new Dictionary<string, string>
             {
