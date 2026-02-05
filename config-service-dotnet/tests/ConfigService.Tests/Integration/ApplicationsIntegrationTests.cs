@@ -194,7 +194,7 @@ public class ApplicationsIntegrationTests : IClassFixture<WebApplicationFactory<
         // Arrange
         var applicationData = new ApplicationCreate { Name = "Get Test App" };
         var createResponse = await _client.PostAsJsonAsync("/api/v1/applications", applicationData);
-        var createdApp = await createResponse.Content.ReadFromJsonAsync<Application>();
+        var createdApp = await ReadJsonAsync<Application>(createResponse.Content);
 
         // Act
         var response = await _client.GetAsync($"/api/v1/applications/{createdApp!.Id}");
@@ -202,7 +202,7 @@ public class ApplicationsIntegrationTests : IClassFixture<WebApplicationFactory<
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         
-        var retrievedApp = await response.Content.ReadFromJsonAsync<ApplicationWithConfigs>();
+        var retrievedApp = await ReadJsonAsync<ApplicationWithConfigs>(response.Content);
         retrievedApp.Should().NotBeNull();
         retrievedApp!.Id.Should().Be(createdApp.Id);
         retrievedApp.Name.Should().Be(createdApp.Name);
@@ -239,8 +239,8 @@ public class ApplicationsIntegrationTests : IClassFixture<WebApplicationFactory<
         var createResponse1 = await _client.PostAsJsonAsync("/api/v1/applications", app1Data);
         var createResponse2 = await _client.PostAsJsonAsync("/api/v1/applications", app2Data);
         
-        var createdApp1 = await createResponse1.Content.ReadFromJsonAsync<Application>();
-        var createdApp2 = await createResponse2.Content.ReadFromJsonAsync<Application>();
+        var createdApp1 = await ReadJsonAsync<Application>(createResponse1.Content);
+        var createdApp2 = await ReadJsonAsync<Application>(createResponse2.Content);
 
         // Act
         var response = await _client.GetAsync("/api/v1/applications");
@@ -248,7 +248,7 @@ public class ApplicationsIntegrationTests : IClassFixture<WebApplicationFactory<
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         
-        var applications = await response.Content.ReadFromJsonAsync<List<Application>>();
+        var applications = await ReadJsonAsync<List<Application>>(response.Content);
         applications.Should().NotBeNull();
         applications!.Should().Contain(a => a.Id == createdApp1!.Id);
         applications.Should().Contain(a => a.Id == createdApp2!.Id);
@@ -288,7 +288,7 @@ public class ApplicationsIntegrationTests : IClassFixture<WebApplicationFactory<
         // Arrange
         var applicationData = new ApplicationCreate { Name = "Delete Test App" };
         var createResponse = await _client.PostAsJsonAsync("/api/v1/applications", applicationData);
-        var createdApp = await createResponse.Content.ReadFromJsonAsync<Application>();
+        var createdApp = await ReadJsonAsync<Application>(createResponse.Content);
 
         // Act
         var response = await _client.DeleteAsync($"/api/v1/applications/{createdApp!.Id}");
@@ -311,8 +311,8 @@ public class ApplicationsIntegrationTests : IClassFixture<WebApplicationFactory<
         var createResponse1 = await _client.PostAsJsonAsync("/api/v1/applications", app1Data);
         var createResponse2 = await _client.PostAsJsonAsync("/api/v1/applications", app2Data);
         
-        var createdApp1 = await createResponse1.Content.ReadFromJsonAsync<Application>();
-        var createdApp2 = await createResponse2.Content.ReadFromJsonAsync<Application>();
+        var createdApp1 = await ReadJsonAsync<Application>(createResponse1.Content);
+        var createdApp2 = await ReadJsonAsync<Application>(createResponse2.Content);
 
         var deleteRequest = new { ids = new[] { createdApp1!.Id, createdApp2!.Id } };
 
@@ -346,7 +346,7 @@ public class ApplicationsIntegrationTests : IClassFixture<WebApplicationFactory<
         var createResponse = await _client.PostAsJsonAsync("/api/v1/applications", createData);
         createResponse.StatusCode.Should().Be(HttpStatusCode.Created);
         
-        var createdApp = await createResponse.Content.ReadFromJsonAsync<Application>();
+        var createdApp = await ReadJsonAsync<Application>(createResponse.Content);
         createdApp.Should().NotBeNull();
 
         // Read

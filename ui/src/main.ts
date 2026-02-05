@@ -7,6 +7,9 @@ import './components/layout/app-navigation';
 import './components/applications/application-list';
 import './components/applications/application-form';
 import './components/applications/application-detail';
+import './components/configurations/configuration-list';
+import './components/configurations/configuration-form';
+import './components/configurations/configuration-detail';
 import './components/auth/login-form';
 import './components/auth/oauth-callback';
 

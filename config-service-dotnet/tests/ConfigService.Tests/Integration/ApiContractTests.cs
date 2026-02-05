@@ -171,7 +171,7 @@ public class ApiContractTests : IClassFixture<WebApplicationFactory<Program>>, I
         // Arrange - Create a test application
         var applicationData = new ApplicationCreate { Name = "Contract Get Test" };
         var createResponse = await _client.PostAsJsonAsync("/api/v1/applications", applicationData);
-        var createdApp = await createResponse.Content.ReadFromJsonAsync<Application>();
+        var createdApp = await ReadJsonAsync<Application>(createResponse.Content);
 
         // Act - Get single application as raw JSON
         var response = await _client.GetAsync($"/api/v1/applications/{createdApp!.Id}");
@@ -193,7 +193,7 @@ public class ApiContractTests : IClassFixture<WebApplicationFactory<Program>>, I
         // Arrange - Create and then update an application
         var createData = new ApplicationCreate { Name = "Contract Update Test" };
         var createResponse = await _client.PostAsJsonAsync("/api/v1/applications", createData);
-        var createdApp = await createResponse.Content.ReadFromJsonAsync<Application>();
+        var createdApp = await ReadJsonAsync<Application>(createResponse.Content);
 
         var updateData = new ApplicationUpdate 
         { 
@@ -265,8 +265,8 @@ public class ApiContractTests : IClassFixture<WebApplicationFactory<Program>>, I
         var createResponse1 = await _client.PostAsJsonAsync("/api/v1/applications", app1Data);
         var createResponse2 = await _client.PostAsJsonAsync("/api/v1/applications", app2Data);
         
-        var createdApp1 = await createResponse1.Content.ReadFromJsonAsync<Application>();
-        var createdApp2 = await createResponse2.Content.ReadFromJsonAsync<Application>();
+        var createdApp1 = await ReadJsonAsync<Application>(createResponse1.Content);
+        var createdApp2 = await ReadJsonAsync<Application>(createResponse2.Content);
 
         // Act - Test the exact format that frontend sends
         var deleteRequest = new { ids = new[] { createdApp1!.Id, createdApp2!.Id } };
@@ -301,7 +301,7 @@ public class ApiContractTests : IClassFixture<WebApplicationFactory<Program>>, I
         // Arrange - Create a test application
         var applicationData = new ApplicationCreate { Name = "Content Type Test" };
         var createResponse = await _client.PostAsJsonAsync("/api/v1/applications", applicationData);
-        var createdApp = await createResponse.Content.ReadFromJsonAsync<Application>();
+        var createdApp = await ReadJsonAsync<Application>(createResponse.Content);
 
         // Act & Assert - Test all endpoints return application/json
         var endpoints = new[]

@@ -29,6 +29,7 @@ describe('ApiClient', () => {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'same-origin',
       });
       expect(result).toEqual(mockData);
     });
@@ -51,6 +52,7 @@ describe('ApiClient', () => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(requestData),
+        credentials: 'same-origin',
       });
       expect(result).toEqual(responseData);
     });

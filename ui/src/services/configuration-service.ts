@@ -6,20 +6,29 @@ import type {
 } from '@/types/api';
 
 export class ConfigurationService {
-  async getConfiguration(id: string): Promise<Configuration> {
-    return apiClient.get<Configuration>(`/configurations/${id}`);
+  async getConfigurations(applicationId: string, search?: string): Promise<Configuration[]> {
+    const params = search ? `?search=${encodeURIComponent(search)}` : '';
+    return apiClient.get<Configuration[]>(`/applications/${applicationId}/configurations${params}`);
   }
 
-  async createConfiguration(data: ConfigurationCreate): Promise<Configuration> {
-    return apiClient.post<Configuration>('/configurations', data);
+  async getConfiguration(applicationId: string, configurationId: string): Promise<Configuration> {
+    return apiClient.get<Configuration>(`/applications/${applicationId}/configurations/${configurationId}`);
   }
 
-  async updateConfiguration(id: string, data: ConfigurationUpdate): Promise<Configuration> {
-    return apiClient.put<Configuration>(`/configurations/${id}`, data);
+  async createConfiguration(applicationId: string, data: ConfigurationCreate): Promise<Configuration> {
+    return apiClient.post<Configuration>(`/applications/${applicationId}/configurations`, data);
   }
 
-  async deleteConfiguration(id: string): Promise<void> {
-    return apiClient.delete<void>(`/configurations/${id}`);
+  async updateConfiguration(applicationId: string, configurationId: string, data: ConfigurationUpdate): Promise<Configuration> {
+    return apiClient.put<Configuration>(`/applications/${applicationId}/configurations/${configurationId}`, data);
+  }
+
+  async deleteConfiguration(applicationId: string, configurationId: string): Promise<void> {
+    return apiClient.delete<void>(`/applications/${applicationId}/configurations/${configurationId}`);
+  }
+
+  async deleteMultipleConfigurations(applicationId: string, configurationIds: string[]): Promise<{ deleted_count: number }> {
+    return apiClient.delete<{ deleted_count: number }>(`/applications/${applicationId}/configurations`, { ids: configurationIds });
   }
 }
 

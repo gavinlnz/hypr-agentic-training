@@ -234,17 +234,6 @@ export class ApplicationDetail extends BaseComponent {
         color: var(--color-text-primary);
       }
 
-      .configs-placeholder {
-        text-align: center;
-        padding: var(--spacing-xl);
-        color: var(--color-text-muted);
-      }
-
-      .configs-placeholder-icon {
-        font-size: 48px;
-        margin-bottom: var(--spacing-md);
-      }
-
       .empty-state {
         text-align: center;
         padding: var(--spacing-2xl);
@@ -367,14 +356,9 @@ export class ApplicationDetail extends BaseComponent {
   }
 
   private renderConfigurations(): string {
-    // For now, show placeholder since configurations aren't implemented yet
-    return `
-      <div class="configs-placeholder">
-        <div class="configs-placeholder-icon">⚙️</div>
-        <h3>Configuration Management</h3>
-        <p>Configuration management will be available in a future update.</p>
-      </div>
-    `;
+    if (!this.application) return '';
+    
+    return `<configuration-list application-id="${this.application.id}"></configuration-list>`;
   }
 
   async handleDelete(): Promise<void> {
