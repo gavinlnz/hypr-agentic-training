@@ -77,7 +77,7 @@ export class OAuthCallback extends BaseComponent {
             const token = urlParams.get('token');
             const refreshToken = urlParams.get('refresh_token');
             const expiresAt = urlParams.get('expires_at');
-            const userInfo = urlParams.get('user');
+            const userInfoParam = urlParams.get('user');
             const error = urlParams.get('error');
 
             if (error) {
@@ -88,12 +88,33 @@ export class OAuthCallback extends BaseComponent {
                 return;
             }
 
-            if (token && refreshToken && expiresAt && userInfo) {
+            if (token && refreshToken && expiresAt && userInfoParam) {
+                // Parse and normalize user info
+                const userInfo = JSON.parse(decodeURIComponent(userInfoParam));
+                
+                // Debug logging
+                console.log('Raw user info from OAuth callback:', userInfo);
+                
+                // Convert PascalCase to camelCase for frontend compatibility
+                const normalizedUserInfo = {
+                    id: userInfo.Id || userInfo.id,
+                    email: userInfo.Email || userInfo.email,
+                    name: userInfo.Name || userInfo.name,
+                    avatarUrl: userInfo.AvatarUrl || userInfo.avatar_url || userInfo.avatarUrl,
+                    role: userInfo.Role || userInfo.role,
+                    provider: userInfo.Provider || userInfo.provider,
+                    providerId: userInfo.ProviderId || userInfo.provider_id || userInfo.providerId,
+                    createdAt: userInfo.CreatedAt || userInfo.created_at || userInfo.createdAt,
+                    lastLoginAt: userInfo.LastLoginAt || userInfo.last_login_at || userInfo.lastLoginAt
+                };
+
+                console.log('Normalized user info:', normalizedUserInfo);
+
                 // Store authentication data
                 sessionStorage.setItem('auth_token', token);
                 sessionStorage.setItem('refresh_token', refreshToken);
                 sessionStorage.setItem('token_expires_at', expiresAt);
-                sessionStorage.setItem('user_info', userInfo);
+                sessionStorage.setItem('user_info', JSON.stringify(normalizedUserInfo));
 
                 // Clean up URL
                 window.history.replaceState({}, document.title, '/');

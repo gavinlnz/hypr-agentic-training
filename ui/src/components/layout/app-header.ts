@@ -313,14 +313,20 @@ export class AppHeader extends BaseComponent {
       return '<div class="user-profile">Not logged in</div>';
     }
 
+    // Debug logging
+    console.log('User data in header:', user);
+
     // Handle missing properties with better fallbacks
     const userName = user.name || user.email || user.login || 'User';
     const userRole = user.role || 'User';
     const userEmail = user.email || 'No email';
+    const avatarUrl = user.avatarUrl || user.avatar_url;
+
+    console.log('Avatar URL found:', avatarUrl);
 
     const initials = this.getInitials(userName);
-    const avatarContent = user.avatarUrl 
-      ? `<img src="${user.avatarUrl}" alt="${userName}" onerror="this.style.display='none'">`
+    const avatarContent = avatarUrl 
+      ? `<img src="${avatarUrl}" alt="${userName}" onerror="this.style.display='none'; this.parentElement.innerHTML='${initials}'">`
       : initials;
 
     return `
