@@ -201,7 +201,7 @@ public class OAuthService : IOAuthService
 
             return provider.ToLower() switch
             {
-                "github" => ParseGitHubProfile(userData),
+                "github" => await ParseGitHubProfileAsync(userData, accessToken),
                 "google" => ParseGoogleProfile(userData),
                 "microsoft" => ParseMicrosoftProfile(userData),
                 "twitter" => ParseTwitterProfile(userData),
@@ -393,9 +393,9 @@ public class OAuthService : IOAuthService
             _oauthConfig.Providers.Count(p => p.Value.IsEnabled), _oauthConfig.Providers.Count);
     }
 
-    private static ExternalUserProfile ParseGitHubProfile(JsonElement userData)
+    private async Task<ExternalUserProfile> ParseGitHubProfileAsync(JsonElement userData, string accessToken)
     {
-        return new ExternalUserProfile
+        var profile = new ExternalUserProfile
         {
             ProviderId = userData.GetProperty("id").GetInt32().ToString(),
             Email = userData.TryGetProperty("email", out var email) ? email.GetString() ?? "" : "",
@@ -403,6 +403,54 @@ public class OAuthService : IOAuthService
             Username = userData.TryGetProperty("login", out var login) ? login.GetString() : null,
             AvatarUrl = userData.TryGetProperty("avatar_url", out var avatar) ? avatar.GetString() : null
         };
+
+        // If email is null or empty, try to fetch from the emails endpoint
+        if (string.IsNullOrEmpty(profile.Email))
+        {
+            try
+            {
+                _logger.LogDebug("Email not found in user profile, fetching from GitHub emails endpoint");
+                
+                var emailsResponse = await _httpClient.GetAsync("https://api.github.com/user/emails");
+                if (emailsResponse.IsSuccessStatusCode)
+                {
+                    var emailsJson = await emailsResponse.Content.ReadAsStringAsync();
+                    var emailsData = JsonSerializer.Deserialize<JsonElement[]>(emailsJson);
+                    
+                    // Find the primary email or the first verified email
+                    var primaryEmail = emailsData?.FirstOrDefault(e => 
+                        e.TryGetProperty("primary", out var primary) && primary.GetBoolean());
+                    
+                    if (primaryEmail.HasValue && primaryEmail.Value.TryGetProperty("email", out var primaryEmailValue))
+                    {
+                        profile.Email = primaryEmailValue.GetString() ?? "";
+                        _logger.LogDebug("Found primary email from GitHub emails endpoint");
+                    }
+                    else
+                    {
+                        // Fallback to first verified email
+                        var verifiedEmail = emailsData?.FirstOrDefault(e => 
+                            e.TryGetProperty("verified", out var verified) && verified.GetBoolean());
+                        
+                        if (verifiedEmail.HasValue && verifiedEmail.Value.TryGetProperty("email", out var verifiedEmailValue))
+                        {
+                            profile.Email = verifiedEmailValue.GetString() ?? "";
+                            _logger.LogDebug("Found verified email from GitHub emails endpoint");
+                        }
+                    }
+                }
+                else
+                {
+                    _logger.LogWarning("Failed to fetch emails from GitHub: {StatusCode}", emailsResponse.StatusCode);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error fetching emails from GitHub emails endpoint");
+            }
+        }
+
+        return profile;
     }
 
     private static ExternalUserProfile ParseGoogleProfile(JsonElement userData)

@@ -66,7 +66,7 @@ public class AuthController : ControllerBase
     [HttpGet("authorize/{provider}")]
     [AllowAnonymous]
     [EnableRateLimiting("AuthPolicy")]
-    [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(AuthorizationUrlResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
@@ -83,7 +83,7 @@ public class AuthController : ControllerBase
                 return NotFound(new { message = $"OAuth provider '{provider}' not found or not enabled" });
             }
 
-            return Ok(new { authorizationUrl = authUrl });
+            return Ok(new AuthorizationUrlResponse { AuthorizationUrl = authUrl });
         }
         catch (ArgumentException ex)
         {

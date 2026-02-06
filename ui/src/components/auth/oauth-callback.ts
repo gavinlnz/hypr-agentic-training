@@ -92,9 +92,6 @@ export class OAuthCallback extends BaseComponent {
                 // Parse and normalize user info
                 const userInfo = JSON.parse(decodeURIComponent(userInfoParam));
                 
-                // Debug logging
-                console.log('Raw user info from OAuth callback:', userInfo);
-                
                 // Convert PascalCase to camelCase for frontend compatibility
                 const normalizedUserInfo = {
                     id: userInfo.Id || userInfo.id,
@@ -107,8 +104,6 @@ export class OAuthCallback extends BaseComponent {
                     createdAt: userInfo.CreatedAt || userInfo.created_at || userInfo.createdAt,
                     lastLoginAt: userInfo.LastLoginAt || userInfo.last_login_at || userInfo.lastLoginAt
                 };
-
-                console.log('Normalized user info:', normalizedUserInfo);
 
                 // Store authentication data
                 sessionStorage.setItem('auth_token', token);

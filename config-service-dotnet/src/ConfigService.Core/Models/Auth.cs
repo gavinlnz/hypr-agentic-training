@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace ConfigService.Core.Models;
 
@@ -7,11 +8,29 @@ namespace ConfigService.Core.Models;
 /// </summary>
 public class OAuthProvider
 {
+    [JsonPropertyName("name")]
     public string Name { get; set; } = string.Empty;
+    
+    [JsonPropertyName("displayName")]
     public string DisplayName { get; set; } = string.Empty;
+    
+    [JsonPropertyName("authorizeUrl")]
     public string AuthorizeUrl { get; set; } = string.Empty;
+    
+    [JsonPropertyName("iconUrl")]
     public string IconUrl { get; set; } = string.Empty;
+    
+    [JsonPropertyName("isEnabled")]
     public bool IsEnabled { get; set; } = true;
+}
+
+/// <summary>
+/// Authorization URL response
+/// </summary>
+public class AuthorizationUrlResponse
+{
+    [JsonPropertyName("authorizationUrl")]
+    public string AuthorizationUrl { get; set; } = string.Empty;
 }
 
 /// <summary>
