@@ -1,34 +1,33 @@
-import { apiClient } from './api-client';
+import { configClient } from './client';
 import type {
   Configuration,
   ConfigurationCreate,
   ConfigurationUpdate,
-} from '@/types/api';
+} from '@/lib/client/types';
 
 export class ConfigurationService {
-  async getConfigurations(applicationId: string, search?: string): Promise<Configuration[]> {
-    const params = search ? `?search=${encodeURIComponent(search)}` : '';
-    return apiClient.get<Configuration[]>(`/applications/${applicationId}/configurations${params}`);
+  async getConfigurations(_applicationId: string, search?: string): Promise<Configuration[]> {
+    return configClient.configurations.list(_applicationId, search);
   }
 
-  async getConfiguration(applicationId: string, configurationId: string): Promise<Configuration> {
-    return apiClient.get<Configuration>(`/applications/${applicationId}/configurations/${configurationId}`);
+  async getConfiguration(_applicationId: string, configurationId: string): Promise<Configuration> {
+    return configClient.configurations.get(configurationId);
   }
 
-  async createConfiguration(applicationId: string, data: ConfigurationCreate): Promise<Configuration> {
-    return apiClient.post<Configuration>(`/applications/${applicationId}/configurations`, data);
+  async createConfiguration(_applicationId: string, data: ConfigurationCreate): Promise<Configuration> {
+    return configClient.configurations.create(data);
   }
 
-  async updateConfiguration(applicationId: string, configurationId: string, data: ConfigurationUpdate): Promise<Configuration> {
-    return apiClient.put<Configuration>(`/applications/${applicationId}/configurations/${configurationId}`, data);
+  async updateConfiguration(_applicationId: string, configurationId: string, data: ConfigurationUpdate): Promise<Configuration> {
+    return configClient.configurations.update(configurationId, data);
   }
 
-  async deleteConfiguration(applicationId: string, configurationId: string): Promise<void> {
-    return apiClient.delete<void>(`/applications/${applicationId}/configurations/${configurationId}`);
+  async deleteConfiguration(_applicationId: string, configurationId: string): Promise<void> {
+    return configClient.configurations.delete(configurationId);
   }
 
   async deleteMultipleConfigurations(applicationId: string, configurationIds: string[]): Promise<{ deleted_count: number }> {
-    return apiClient.delete<{ deleted_count: number }>(`/applications/${applicationId}/configurations`, { ids: configurationIds });
+    return configClient.configurations.deleteMultiple(applicationId, configurationIds);
   }
 }
 

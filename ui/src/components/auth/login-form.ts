@@ -1,9 +1,8 @@
 import { BaseComponent } from '@/components/base/base-component';
-import { ApiClient } from '@/services/api-client';
+import { configClient } from '@/services/client';
 import type { OAuthProvider } from '@/types/auth';
 
 export class LoginForm extends BaseComponent {
-    private apiClient = new ApiClient();
     private isLoading = false;
     private providers: OAuthProvider[] = [];
 
@@ -14,7 +13,7 @@ export class LoginForm extends BaseComponent {
 
     private async loadProviders(): Promise<void> {
         try {
-            this.providers = await this.apiClient.request<OAuthProvider[]>('/auth/providers');
+            this.providers = await configClient.request<OAuthProvider[]>('/auth/providers');
             this.render();
         } catch (error) {
             console.error('Failed to load OAuth providers:', error);
@@ -338,7 +337,7 @@ export class LoginForm extends BaseComponent {
                 width: 100%;
             }
         `);
-        
+
         this.shadow.innerHTML = '';
         this.shadow.appendChild(template.content.cloneNode(true));
     }
@@ -367,16 +366,16 @@ export class LoginForm extends BaseComponent {
 
         try {
             // Get authorization URL from backend
-            const response = await this.apiClient.request<{ authorizationUrl: string }>(
+            const response = await configClient.request<{ authorizationUrl: string }>(
                 `/auth/authorize/${provider}?returnUrl=${encodeURIComponent(window.location.origin)}`
             );
 
             // Redirect to OAuth provider
             window.location.href = response.authorizationUrl;
-            
+
         } catch (error: any) {
             console.error('OAuth login failed:', error);
-            
+
             if (error.status === 404) {
                 this.showError(`${provider} authentication is not available`);
             } else if (error.status >= 500) {
@@ -412,7 +411,7 @@ export class LoginForm extends BaseComponent {
         this.hideError();
 
         try {
-            const response = await this.apiClient.request<any>('/auth/callback', {
+            const response = await configClient.request<any>('/auth/callback', {
                 method: 'POST',
                 body: JSON.stringify({
                     provider,
@@ -423,14 +422,14 @@ export class LoginForm extends BaseComponent {
 
             // Store authentication data
             this.storeAuthData(response);
-            
+
             // Clean up URL and redirect to app
             this.cleanupUrl();
             this.redirectToApp();
-            
+
         } catch (error: any) {
             console.error('OAuth callback failed:', error);
-            
+
             if (error.status === 401) {
                 this.showError('Authentication failed. Please try again.');
             } else if (error.status >= 500) {
@@ -438,7 +437,7 @@ export class LoginForm extends BaseComponent {
             } else {
                 this.showError('Authentication failed. Please try again.');
             }
-            
+
             this.cleanupUrl();
         } finally {
             this.setProviderLoading(provider, false);
@@ -448,14 +447,14 @@ export class LoginForm extends BaseComponent {
     private detectProviderFromUrl(): string {
         // Try to detect provider from referrer or URL patterns
         const referrer = document.referrer.toLowerCase();
-        
+
         if (referrer.includes('github.com')) return 'github';
         if (referrer.includes('google.com')) return 'google';
         if (referrer.includes('microsoft.com') || referrer.includes('live.com')) return 'microsoft';
         if (referrer.includes('apple.com')) return 'apple';
         if (referrer.includes('twitter.com') || referrer.includes('x.com')) return 'twitter';
         if (referrer.includes('facebook.com')) return 'facebook';
-        
+
         // Default to first enabled provider
         return this.providers.find(p => p.isEnabled)?.name || 'github';
     }
@@ -478,7 +477,7 @@ export class LoginForm extends BaseComponent {
         if (errorElement) {
             errorElement.textContent = message;
             errorElement.style.display = 'block';
-            
+
             // Add shake animation
             errorElement.classList.add('shake');
             setTimeout(() => errorElement.classList.remove('shake'), 500);
@@ -507,14 +506,14 @@ export class LoginForm extends BaseComponent {
         url.searchParams.delete('state');
         url.searchParams.delete('error');
         url.searchParams.delete('provider');
-        
+
         window.history.replaceState({}, document.title, url.toString());
     }
 
     private redirectToApp(): void {
         // Dispatch custom event to notify app of successful login
         window.dispatchEvent(new CustomEvent('auth:login-success'));
-        
+
         // Or redirect to main app
         window.location.href = '/';
     }

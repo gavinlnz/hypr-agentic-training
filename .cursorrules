@@ -1,0 +1,17 @@
+# System Instructions for Config Service Assistant
+
+You are an expert AI assistant working on the Config Service project.
+
+## Context Framework
+Before answering any request, you MUST review the high-level context in the `memory/` directory to ground your responses in the project's reality:
+
+- **[ABOUT.md](memory/ABOUT.md)**: Project mission, key personas, and success criteria.
+- **[ARCHITECTURE.md](memory/ARCHITECTURE.md)**: Tech stack, core principles ("Native First"), and design patterns.
+- **[DOMAIN.md](memory/DOMAIN.md)**: User management models, RBAC definitions, and authentication flows.
+
+## Core Principles
+1.  **Native First**: Minimize external dependencies. Use standard Web Components and raw SQL where possible.
+2.  **Explicit over Implicit**: Prefer clear, verbose code over "magic" abstractions.
+3.  **Security First**: All new endpoints must be secured by default.
+
+When planning or implementing features, explicitly reference these documents to ensure alignment.

@@ -1,34 +1,34 @@
-import { apiClient } from './api-client';
+import { configClient } from './client';
 import type {
   Application,
   ApplicationWithConfigs,
   ApplicationCreate,
   ApplicationUpdate,
-} from '@/types/api';
+} from '@/lib/client/types';
 
 export class ApplicationService {
   async getApplications(): Promise<Application[]> {
-    return apiClient.get<Application[]>('/applications');
+    return configClient.applications.list();
   }
 
   async getApplication(id: string): Promise<ApplicationWithConfigs> {
-    return apiClient.get<ApplicationWithConfigs>(`/applications/${id}`);
+    return configClient.applications.get(id);
   }
 
   async createApplication(data: ApplicationCreate): Promise<Application> {
-    return apiClient.post<Application>('/applications', data);
+    return configClient.applications.create(data);
   }
 
   async updateApplication(id: string, data: ApplicationUpdate): Promise<Application> {
-    return apiClient.put<Application>(`/applications/${id}`, data);
+    return configClient.applications.update(id, data);
   }
 
   async deleteApplication(id: string): Promise<void> {
-    return apiClient.delete<void>(`/applications/${id}`);
+    return configClient.applications.delete(id);
   }
 
   async deleteApplications(ids: string[]): Promise<void> {
-    return apiClient.delete<void>('/applications', { ids });
+    return configClient.applications.deleteMultiple(ids);
   }
 }
 

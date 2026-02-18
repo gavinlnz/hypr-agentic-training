@@ -13,8 +13,19 @@ using Serilog;
 using System.Text;
 using System.Text.Json;
 using System.Threading.RateLimiting;
+using OpenTelemetry.Trace;
+using OpenTelemetry.Resources;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Configure OpenTelemetry
+builder.Services.AddOpenTelemetry()
+    .WithTracing(tracerProviderBuilder =>
+    {
+        tracerProviderBuilder
+            .AddAspNetCoreInstrumentation()
+            .AddConsoleExporter();
+    });
 
 // Configure Serilog
 Log.Logger = new LoggerConfiguration()

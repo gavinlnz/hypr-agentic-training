@@ -1,13 +1,12 @@
-import { ApiClient } from './api-client';
-import type { 
-    LoginResponse, 
-    UserInfo, 
+import { configClient } from './client';
+import type {
+    LoginResponse,
+    UserInfo,
     RefreshTokenRequest,
     OAuthProvider
 } from '@/types/auth';
 
 export class AuthService {
-    private apiClient = new ApiClient();
     private tokenRefreshTimer?: number;
 
     constructor() {
@@ -19,7 +18,7 @@ export class AuthService {
      * Get available OAuth providers
      */
     async getProviders(): Promise<OAuthProvider[]> {
-        return await this.apiClient.request<OAuthProvider[]>('/auth/providers');
+        return await configClient.request<OAuthProvider[]>('/auth/providers');
     }
 
     /**
@@ -27,7 +26,7 @@ export class AuthService {
      */
     async getAuthorizationUrl(provider: string, returnUrl?: string): Promise<string> {
         const params = returnUrl ? `?returnUrl=${encodeURIComponent(returnUrl)}` : '';
-        const response = await this.apiClient.request<{ authorizationUrl: string }>(
+        const response = await configClient.request<{ authorizationUrl: string }>(
             `/auth/authorize/${provider}${params}`
         );
         return response.authorizationUrl;
@@ -37,14 +36,14 @@ export class AuthService {
      * Complete OAuth login after callback
      */
     async completeOAuthLogin(provider: string, code: string, state?: string): Promise<LoginResponse> {
-        const response = await this.apiClient.request<LoginResponse>('/auth/callback', {
+        const response = await configClient.request<LoginResponse>('/auth/callback', {
             method: 'POST',
             body: JSON.stringify({ provider, code, state })
         });
 
         this.storeAuthData(response);
         this.setupTokenRefresh();
-        
+
         return response;
     }
 
@@ -55,10 +54,10 @@ export class AuthService {
         // Clear local authentication data
         this.clearAuthData();
         this.clearTokenRefresh();
-        
+
         // TODO: Implement server-side logout endpoint
         // For now, we only do client-side logout by clearing session data
-        
+
         // Dispatch logout event
         window.dispatchEvent(new CustomEvent('auth:logged-out'));
     }
@@ -72,7 +71,7 @@ export class AuthService {
                 return null;
             }
 
-            return await this.apiClient.request<UserInfo>('/auth/me');
+            return await configClient.request<UserInfo>('/auth/me');
         } catch (error) {
             console.error('Failed to get current user:', error);
             return null;
@@ -90,14 +89,14 @@ export class AuthService {
             }
 
             const request: RefreshTokenRequest = { refreshToken };
-            const response = await this.apiClient.request<LoginResponse>('/auth/refresh', {
+            const response = await configClient.request<LoginResponse>('/auth/refresh', {
                 method: 'POST',
                 body: JSON.stringify(request)
             });
 
             this.storeAuthData(response);
             this.setupTokenRefresh();
-            
+
             return true;
         } catch (error) {
             console.error('Token refresh failed:', error);
@@ -112,7 +111,7 @@ export class AuthService {
     isAuthenticated(): boolean {
         const token = this.getToken();
         const expiresAt = this.getTokenExpirationDate();
-        
+
         if (!token || !expiresAt) {
             return false;
         }
@@ -121,7 +120,7 @@ export class AuthService {
         const now = new Date();
         const expiration = new Date(expiresAt);
         const bufferTime = 5 * 60 * 1000; // 5 minutes in milliseconds
-        
+
         return expiration.getTime() > (now.getTime() + bufferTime);
     }
 
@@ -137,7 +136,7 @@ export class AuthService {
      */
     getUserInfo(): UserInfo | null {
         const userInfoStr = sessionStorage.getItem('user_info');
-        
+
         if (!userInfoStr) {
             return null;
         }
