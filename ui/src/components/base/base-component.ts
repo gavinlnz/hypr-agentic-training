@@ -1,4 +1,5 @@
 import type { ComponentState } from '@/types/components';
+import { getUserTimezone } from '@/utils/timezone';
 
 export abstract class BaseComponent extends HTMLElement {
   protected shadow: ShadowRoot;
@@ -15,6 +16,11 @@ export abstract class BaseComponent extends HTMLElement {
   connectedCallback(): void {
     this.render();
     this.setupEventListeners();
+
+    // Listen for timezone changes to trigger a re-render
+    window.addEventListener('app-timezone-changed', () => {
+      this.render();
+    });
   }
 
   disconnectedCallback(): void {
@@ -22,7 +28,7 @@ export abstract class BaseComponent extends HTMLElement {
   }
 
   protected abstract render(): void;
-  
+
   protected setupEventListeners(): void {
     // Override in subclasses
   }
@@ -83,13 +89,34 @@ export abstract class BaseComponent extends HTMLElement {
   }
 
   protected formatDate(dateString: string): string {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+    const tz = getUserTimezone();
+
+    // .NET often serializes DateTime without the trailing 'Z'.
+    // If we want it treated as UTC (which it is), we must append Z if absent.
+    let parsedString = dateString;
+    if (parsedString && !parsedString.endsWith('Z') && !parsedString.match(/[+-]\d{2}:\d{2}$/)) {
+      parsedString += 'Z';
+    }
+
+    try {
+      return new Date(parsedString).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        timeZone: tz
+      });
+    } catch (e) {
+      // Fallback if timezone is invalid
+      return new Date(parsedString).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    }
   }
 
   protected truncateText(text: string, maxLength: number): string {
