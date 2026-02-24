@@ -46,7 +46,7 @@ describe('ApplicationForm Integration Tests', () => {
     // Import base components first
     await import('@/components/base/loading-spinner');
     await import('@/components/base/error-message');
-    
+
     // Import the component after mocking
     await import('@/components/applications/application-form');
 
@@ -74,11 +74,11 @@ describe('ApplicationForm Integration Tests', () => {
   it('should handle form attributes correctly', async () => {
     // Arrange
     const form = document.createElement('application-form') as any;
-    
+
     // Act - Set attributes
     form.setAttribute('mode', 'create');
     form.setAttribute('application-id', '01HKQJQJQJQJQJQJQJQJQJQJQ1');
-    
+
     container.appendChild(form);
 
     // Assert - Attributes should be set correctly
@@ -175,11 +175,15 @@ describe('ApplicationForm Integration Tests', () => {
     // Test service call
     const result = await applicationService.getApplication(existingApp.id);
 
+    // Wait for the component to finish loading and rendering
+    await new Promise(resolve => setTimeout(resolve, 50));
+
     // Assert - Should load existing application data
     expect(result).toBeTruthy();
     expect(result.name).toBe(existingApp.name);
     expect(form.getAttribute('application-id')).toBe(existingApp.id);
     expect(form.getAttribute('mode')).toBe('edit');
+
   });
 
   it('should handle form validation concepts', async () => {

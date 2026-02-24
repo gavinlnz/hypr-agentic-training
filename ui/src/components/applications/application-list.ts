@@ -397,6 +397,7 @@ export class ApplicationList extends BaseComponent {
             <th>Name</th>
             <th>Comments</th>
             <th>Created</th>
+            <th>Last Modified</th>
             <th>Actions</th>
           </tr>
         </thead>
@@ -422,6 +423,9 @@ export class ApplicationList extends BaseComponent {
                 <div class="app-date">${this.formatDate(app.created_at)}</div>
               </td>
               <td>
+                <div class="app-date">${this.formatDate(app.updated_at)}</div>
+              </td>
+              <td>
                 <div class="app-actions">
                   <a href="#/applications/${app.id}" class="action-btn action-btn-view">View</a>
                   <a href="#/applications/${app.id}/edit" class="action-btn action-btn-edit">Edit</a>
@@ -445,9 +449,9 @@ export class ApplicationList extends BaseComponent {
         <h3 class="empty-state-title">${message}</h3>
         <p class="empty-state-description">
           ${this.searchTerm
-            ? 'Try adjusting your search terms.'
-            : 'Get started by creating your first application.'
-          }
+        ? 'Try adjusting your search terms.'
+        : 'Get started by creating your first application.'
+      }
         </p>
         ${!this.searchTerm ? '<a href="#/applications/new" class="btn btn-primary">Create Application</a>' : ''}
       </div>
@@ -465,7 +469,7 @@ export class ApplicationList extends BaseComponent {
 
   handleSelectAll(checked: boolean): void {
     const filteredApplications = this.filterApplications();
-    
+
     if (checked) {
       filteredApplications.forEach(app => this.selectedIds.add(app.id));
     } else {
@@ -479,7 +483,7 @@ export class ApplicationList extends BaseComponent {
 
     const selectedApps = this.applications.filter(app => this.selectedIds.has(app.id));
     const appNames = selectedApps.map(app => app.name).join(', ');
-    
+
     const confirmed = confirm(
       `Are you sure you want to delete ${this.selectedIds.size} application(s)?\n\n${appNames}\n\nThis action cannot be undone.`
     );
@@ -503,7 +507,7 @@ export class ApplicationList extends BaseComponent {
       await this.loadApplications();
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to delete applications';
-      
+
       // Dispatch error event
       this.dispatchEvent(new CustomEvent('app-error', {
         bubbles: true,

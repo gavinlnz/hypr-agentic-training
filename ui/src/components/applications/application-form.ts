@@ -175,6 +175,19 @@ export class ApplicationForm extends BaseComponent {
         color: var(--color-error);
       }
 
+      .form-text-readonly {
+        display: block;
+        width: 100%;
+        padding: 12px 16px;
+        margin: 0;
+        border: 2px solid transparent;
+        background-color: var(--color-bg-secondary);
+        border-radius: 8px;
+        font-size: 16px;
+        color: var(--color-text-secondary);
+        box-sizing: border-box;
+      }
+
       .form-actions {
         display: flex;
         gap: var(--spacing-md);
@@ -271,7 +284,7 @@ export class ApplicationForm extends BaseComponent {
 
     this.shadow.innerHTML = '';
     this.shadow.appendChild(template.content.cloneNode(true));
-    
+
     // Set up event listeners after DOM is updated
     this.setupFormEventListeners();
   }
@@ -416,6 +429,17 @@ export class ApplicationForm extends BaseComponent {
           <div class="form-help">Optional description or notes (max 1024 characters)</div>
           ${errors.comments ? `<div class="form-error">${errors.comments}</div>` : ''}
         </div>
+
+        ${this.mode === 'edit' && app ? `
+        <div class="form-group">
+          <label class="form-label">Created At</label>
+          <div class="form-text-readonly">${this.formatDate(app.created_at)}</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Last Modified</label>
+          <div class="form-text-readonly">${this.formatDate(app.updated_at)}</div>
+        </div>
+        ` : ''}
 
         ${errors.submit ? `<error-message message="${errors.submit}" type="error"></error-message>` : ''}
 
