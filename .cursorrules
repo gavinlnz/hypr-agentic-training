@@ -15,3 +15,5 @@ Before answering any request, you MUST review the high-level context in the `mem
 3.  **Security First**: All new endpoints must be secured by default.
 
 When planning or implementing features, explicitly reference these documents to ensure alignment.
+
+Use 'bd' for task tracking
