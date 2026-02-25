@@ -57,10 +57,10 @@ export class ConfigurationList extends BaseComponent {
   private handleSearch = (event: Event) => {
     const target = event.target as HTMLInputElement;
     this.searchQuery = target.value;
-    
+
     // Debounce search
     clearTimeout(this.searchTimeout);
-    this.searchTimeout = setTimeout(() => {
+    this.searchTimeout = window.setTimeout(() => {
       this.loadConfigurations();
     }, 300);
   };
@@ -80,7 +80,7 @@ export class ConfigurationList extends BaseComponent {
   private handleSelectConfiguration = (event: Event) => {
     const target = event.target as HTMLInputElement;
     const configId = target.dataset.configId!;
-    
+
     if (target.checked) {
       this.selectedIds.add(configId);
     } else {
@@ -140,7 +140,7 @@ export class ConfigurationList extends BaseComponent {
     }
   };
 
-  private formatDate(dateString: string): string {
+  protected formatDate(dateString: string): string {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
@@ -151,7 +151,7 @@ export class ConfigurationList extends BaseComponent {
   }
 
   private formatConfig(config: Record<string, any>): string {
-    const keys = Object.keys(config);
+    const keys = Object.keys(config || {});
     if (keys.length === 0) return 'Empty configuration';
     if (keys.length <= 3) return keys.join(', ');
     return `${keys.slice(0, 3).join(', ')} +${keys.length - 3} more`;
@@ -159,12 +159,16 @@ export class ConfigurationList extends BaseComponent {
 
   render() {
     if (this.isLoading) {
-      this.innerHTML = '<loading-spinner></loading-spinner>';
+      const template = this.createTemplate('<loading-spinner></loading-spinner>', ConfigurationList.styles);
+      this.shadow.innerHTML = '';
+      this.shadow.appendChild(template.content.cloneNode(true));
       return;
     }
 
     if (this.error) {
-      this.innerHTML = `<error-message message="${this.error}"></error-message>`;
+      const template = this.createTemplate(`<error-message message="${this.error}"></error-message>`, ConfigurationList.styles);
+      this.shadow.innerHTML = '';
+      this.shadow.appendChild(template.content.cloneNode(true));
       return;
     }
 
@@ -173,7 +177,7 @@ export class ConfigurationList extends BaseComponent {
     const allSelected = hasConfigurations && this.configurations.every(config => this.selectedIds.has(config.id));
     const someSelected = hasConfigurations && this.configurations.some(config => this.selectedIds.has(config.id));
 
-    this.innerHTML = `
+    const template = this.createTemplate(`
       <div class="configurations-list">
         <div class="list-header">
           <div class="header-actions">
@@ -288,7 +292,10 @@ export class ConfigurationList extends BaseComponent {
           </div>
         `}
       </div>
-    `;
+    `, ConfigurationList.styles);
+
+    this.shadow.innerHTML = '';
+    this.shadow.appendChild(template.content.cloneNode(true));
 
     this.attachEventListeners();
   }
@@ -312,7 +319,7 @@ export class ConfigurationList extends BaseComponent {
     const selectAllCheckbox = this.$('.select-all-checkbox') as HTMLInputElement;
     if (selectAllCheckbox) {
       selectAllCheckbox.addEventListener('change', this.handleSelectAll);
-      
+
       // Set indeterminate state
       const someSelected = this.configurations.some(config => this.selectedIds.has(config.id));
       const allSelected = this.configurations.every(config => this.selectedIds.has(config.id));
