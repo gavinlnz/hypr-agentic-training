@@ -39,6 +39,10 @@ export interface CustomEventMap {
   'form-submit': CustomEvent<{ data: any }>;
   'form-cancel': CustomEvent<void>;
   'confirm-dialog': CustomEvent<{ confirmed: boolean }>;
+  'configuration-deleted': CustomEvent<{ configurationId: string }>;
+  'configuration-created': CustomEvent<{ configuration: any }>;
+  'configuration-updated': CustomEvent<{ configurationId: string }>;
+  'configurations-deleted': CustomEvent<{ count: number }>;
 }
 
 // Extend HTMLElement to include custom events
@@ -49,7 +53,7 @@ declare global {
       listener: (this: HTMLElement, ev: CustomEventMap[K]) => any,
       options?: boolean | AddEventListenerOptions
     ): void;
-    
+
     dispatchEvent<K extends keyof CustomEventMap>(ev: CustomEventMap[K]): boolean;
   }
 }

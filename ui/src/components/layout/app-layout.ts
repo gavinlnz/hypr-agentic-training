@@ -93,19 +93,19 @@ export class AppLayout extends BaseComponent {
     }
 
     // Configuration routes
-    if (route.match(/^\/applications\/[^\/]+\/configurations\/new$/)) {
+    if (route.match(/^\/applications\/[^/]+\/configurations\/new$/)) {
       const applicationId = route.split('/')[2];
       return `<configuration-form application-id="${applicationId}" mode="create"></configuration-form>`;
     }
 
-    if (route.match(/^\/applications\/[^\/]+\/configurations\/[^\/]+\/edit$/)) {
+    if (route.match(/^\/applications\/[^/]+\/configurations\/[^/]+\/edit$/)) {
       const parts = route.split('/');
       const applicationId = parts[2];
       const configurationId = parts[4];
       return `<configuration-form application-id="${applicationId}" configuration-id="${configurationId}" mode="edit"></configuration-form>`;
     }
 
-    if (route.match(/^\/applications\/[^\/]+\/configurations\/[^\/]+$/)) {
+    if (route.match(/^\/applications\/[^/]+\/configurations\/[^/]+$/)) {
       const parts = route.split('/');
       const applicationId = parts[2];
       const configurationId = parts[4];

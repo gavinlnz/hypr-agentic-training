@@ -70,10 +70,10 @@ export class ConfigurationForm extends BaseComponent {
 
   private handleSubmit = async (event: Event) => {
     event.preventDefault();
-    
+
     const form = event.target as HTMLFormElement;
     const formData = new FormData(form);
-    
+
     const name = formData.get('name') as string;
     const comments = formData.get('comments') as string;
     const configJson = formData.get('config') as string;
@@ -146,7 +146,7 @@ export class ConfigurationForm extends BaseComponent {
       }
     } catch (error: any) {
       console.error('Failed to save configuration:', error);
-      
+
       // Handle specific error messages
       if (error.message?.includes('already exists')) {
         this.error = 'A configuration with this name already exists in this application.';
@@ -174,7 +174,7 @@ export class ConfigurationForm extends BaseComponent {
   private validateJson = (event: Event) => {
     const textarea = event.target as HTMLTextAreaElement;
     const value = textarea.value.trim();
-    
+
     if (!value) {
       this.clearJsonError();
       return;
@@ -189,7 +189,7 @@ export class ConfigurationForm extends BaseComponent {
   };
 
   private showJsonError(message: string) {
-    const errorElement = this.$('.json-error');
+    const errorElement = this.$('.json-error') as HTMLElement;
     if (errorElement) {
       errorElement.textContent = message;
       errorElement.style.display = 'block';
@@ -197,7 +197,7 @@ export class ConfigurationForm extends BaseComponent {
   }
 
   private clearJsonError() {
-    const errorElement = this.$('.json-error');
+    const errorElement = this.$('.json-error') as HTMLElement;
     if (errorElement) {
       errorElement.style.display = 'none';
     }
@@ -205,12 +205,14 @@ export class ConfigurationForm extends BaseComponent {
 
   render() {
     if (this.isLoading) {
-      this.innerHTML = '<loading-spinner></loading-spinner>';
+      const template = this.createTemplate('<loading-spinner></loading-spinner>', ConfigurationForm.styles);
+      this.shadow.innerHTML = '';
+      this.shadow.appendChild(template.content.cloneNode(true));
       return;
     }
 
     const title = this.isEditMode ? 'Edit Configuration' : 'New Configuration';
-    const submitText = this.isSaving 
+    const submitText = this.isSaving
       ? (this.isEditMode ? 'Updating...' : 'Creating...')
       : (this.isEditMode ? 'Update Configuration' : 'Create Configuration');
 
@@ -220,7 +222,7 @@ export class ConfigurationForm extends BaseComponent {
       config: {}
     };
 
-    this.innerHTML = `
+    const template = this.createTemplate(`
       <div class="configuration-form">
         <div class="form-header">
           <div class="breadcrumb">
@@ -317,7 +319,10 @@ export class ConfigurationForm extends BaseComponent {
           </div>
         </form>
       </div>
-    `;
+    `, ConfigurationForm.styles);
+
+    this.shadow.innerHTML = '';
+    this.shadow.appendChild(template.content.cloneNode(true));
 
     this.attachEventListeners();
   }

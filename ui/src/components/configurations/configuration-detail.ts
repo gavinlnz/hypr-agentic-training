@@ -101,7 +101,7 @@ export class ConfigurationDetail extends BaseComponent {
     try {
       const configJson = JSON.stringify(this.configuration.config, null, 2);
       await navigator.clipboard.writeText(configJson);
-      
+
       // Show temporary success message
       this.showCopySuccess();
     } catch (error) {
@@ -117,7 +117,7 @@ export class ConfigurationDetail extends BaseComponent {
       const originalText = button.textContent;
       button.textContent = 'Copied!';
       button.classList.add('success');
-      
+
       setTimeout(() => {
         button.textContent = originalText;
         button.classList.remove('success');
@@ -136,7 +136,7 @@ export class ConfigurationDetail extends BaseComponent {
     }
   }
 
-  private formatDate(dateString: string): string {
+  protected formatDate(dateString: string): string {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',
@@ -151,33 +151,39 @@ export class ConfigurationDetail extends BaseComponent {
   }
 
   private getConfigSummary(config: Record<string, any>): string {
-    const keys = Object.keys(config);
+    const keys = Object.keys(config || {});
     if (keys.length === 0) return 'Empty configuration';
-    
+
     const summary = keys.slice(0, 5).join(', ');
     return keys.length > 5 ? `${summary} +${keys.length - 5} more` : summary;
   }
 
   render() {
     if (this.isLoading) {
-      this.innerHTML = '<loading-spinner></loading-spinner>';
+      const template = this.createTemplate('<loading-spinner></loading-spinner>', ConfigurationDetail.styles);
+      this.shadow.innerHTML = '';
+      this.shadow.appendChild(template.content.cloneNode(true));
       return;
     }
 
     if (this.error) {
-      this.innerHTML = `<error-message message="${this.error}"></error-message>`;
+      const template = this.createTemplate(`<error-message message="${this.error}"></error-message>`, ConfigurationDetail.styles);
+      this.shadow.innerHTML = '';
+      this.shadow.appendChild(template.content.cloneNode(true));
       return;
     }
 
     if (!this.configuration) {
-      this.innerHTML = '<error-message message="Configuration not found"></error-message>';
+      const template = this.createTemplate('<error-message message="Configuration not found"></error-message>', ConfigurationDetail.styles);
+      this.shadow.innerHTML = '';
+      this.shadow.appendChild(template.content.cloneNode(true));
       return;
     }
 
     const config = this.configuration;
-    const hasConfig = Object.keys(config.config).length > 0;
+    const hasConfig = config.config && Object.keys(config.config).length > 0;
 
-    this.innerHTML = `
+    const template = this.createTemplate(`
       <div class="configuration-detail">
         <div class="detail-header">
           <div class="breadcrumb">
@@ -192,7 +198,7 @@ export class ConfigurationDetail extends BaseComponent {
               <div class="config-meta">
                 <span class="meta-item">
                   <span class="meta-label">Keys:</span>
-                  <span class="meta-value">${Object.keys(config.config).length}</span>
+                  <span class="meta-value">${config.config ? Object.keys(config.config).length : 0}</span>
                 </span>
                 <span class="meta-separator">•</span>
                 <span class="meta-item">
@@ -287,7 +293,10 @@ export class ConfigurationDetail extends BaseComponent {
           </div>
         </div>
       </div>
-    `;
+    `, ConfigurationDetail.styles);
+
+    this.shadow.innerHTML = '';
+    this.shadow.appendChild(template.content.cloneNode(true));
 
     this.attachEventListeners();
   }
