@@ -93,7 +93,7 @@ The Config Service now has a **fully functional Configuration Management system*
 - **Description**: Enhance test coverage for new features
 - **Tasks**:
   - [ ] Add OAuth authentication tests
-  - [ ] Create end-to-end authentication flow tests
+  - [x] Create end-to-end authentication flow tests
   - [ ] Add security testing for API endpoints
   - [ ] Implement load testing for API performance
   - [ ] Add visual regression testing for UI components
@@ -207,6 +207,8 @@ The Config Service now has a **fully functional Configuration Management system*
 - Comprehensive test suites (backend and frontend)
 - Security vulnerability resolution
 - Development environment setup and documentation
+- Application timestamps and user timezone selector (completed in later stories)
+- Playwright E2E testing framework integration
 
 ### 🔄 In Progress:
 - None - All major features complete

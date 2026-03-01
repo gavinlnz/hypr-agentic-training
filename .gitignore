@@ -225,3 +225,4 @@ yarn-error.log*
 # Frontend build outputs
 dist/
 build/
+.worktrees/

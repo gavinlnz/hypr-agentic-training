@@ -26,7 +26,7 @@ It is very IMPORTANT the prompt stress the importance of including these SPECIFI
 ## Data Models
 
 **Application**
-DB Table: applications
+DB Table: applications==
 Columns:
   - id: (primary key) datatype: string/ULID
   - name: unique datatype: string(256)
